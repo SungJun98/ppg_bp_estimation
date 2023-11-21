@@ -40,7 +40,7 @@ parser.add_argument('--min', type=float, default=-1.0, help="preprocessing")  # 
 parser.add_argument('--mode', type=str, default='all',
                     choices=['all', 'hypo', 'normal','prehyper', 'hyper2', 'crisis'],
                     help='select group for training')  # train으로 사용할 그룹 설정/ 모든 그룹 train시 all 사용
-parser.add_argument('--method', type=str, default='erm', choices=['erm', 'dro', 'vrex', 'ours-1', 'ours-2', 'ours-both'],
+parser.add_argument('--method', type=str, default='erm', choices=['erm', 'dro', 'vrex', 'crex', 'drex', 'cdrex'],
                     help='Choose learning method') # ours-1 : C-REx / ours-2 : D-REx / ours-both : CD-REx
 parser.add_argument('--model', type=str, default='ConvTransformer', choices=['Transformer', 'ConvTransformer'])
 parser.add_argument('--d_input', type=int, default=64, help="model input and PE dimension")

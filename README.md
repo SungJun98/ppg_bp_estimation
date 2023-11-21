@@ -1,6 +1,6 @@
 # Robust Optimization for PPG-based Blood Pressure Estimation
 
-This repository contains PyTorch implemenations of Robust Optimization for PPG-based Blood Pressure Estimation and preprocessing step implemented by MATLAB and Python.
+This repository contains PyTorch implemenations of "Robust Optimization for PPG-based Blood Pressure Estimation".
 
 ## Introduction
 Regular and continuous BP monitoring is vital for early diagnosis and appropriate treatment of potentially deadly conditions associated with BP.
@@ -14,18 +14,16 @@ To deal wih this problem, we provide diverse approaches to enhance the worst-gro
 3. Loss perspective
 
 
-### 1. Data perspective
-![Figure_Data Processing](https://user-images.githubusercontent.com/84635206/207836340-aad4a14b-29a5-4c8a-861d-eebfb46e6275.png)
-
-The dataset used in this work is the MIMIC-III Waveform Database Matched Subset, provided and publicly available by PhysioNet.
-It's available to check the code for preprocessing step in  ``` ./preprocessing ```
-
-We also suggest Time-CutMix (TC) to augment data by concatenating two sequences randomly in training phase.
-
-### 2. Model perspective
 ![overall_method](https://user-images.githubusercontent.com/84635206/207836785-4983911c-f5c4-4ba1-9130-feb3515e74a2.png)
 
-In the paper, we propose Transformer with Convolution layer to handle the local context.
+### 1. Data perspective
+The dataset used in this work is the MIMIC-III Waveform Database Matched Subset, provided and publicly available by PhysioNet.
+
+We suggest Time-CutMix (TC) to augment data by concatenating two sequences randomly in training phase.
+Note that TC is in-group augmentation.
+
+### 2. Model perspective
+In the paper, we propose ConvTransformer, Transformer with Convolution layer, to handle the local context.
 
 ### 3. Loss perspective
 The tranditional ERM shows worse performance on minority group.
@@ -92,13 +90,13 @@ main.py --method=<METHOD>                     \
         [--mixup]
 ```
 Parameters:
-* ```METHOD``` &mdash; define training methods (default: ERM) :
-    - erm
-    - dro
-    - vrex
-    - ours-1 (C-REx)
-    - ours-2 (D-REx)
-    - ours-both (CD-REx)
+* ```METHOD``` &mdash; define training methods (default: erm) :
+    - erm (ERM)
+    - dro (GDRO)
+    - vrex (V-REx)
+    - crex (C-REx)
+    - drex (D-REx)
+    - cdrex (CD-REx)
 * ```MAX_EPOCH``` &mdash; number of training epochs (default: 1000)
 * ```MODEL``` &mdash; model name (default: ConvTransformer) :
     - Transformer
@@ -116,7 +114,7 @@ Parameters:
 * ```C1``` &mdash; scale variance with number of training data per group (default: 1e-5)
 * ```C21``` &mdash; scale variance for SBP loss with kl divergence per group (default: 1e-4)
 * ```C22``` &mdash; scale variance for DBP loss with kl divergence per group (default: 5e-4)
-* ```--mixup``` &mdash; Run Time-CutMix for data augmentation
+* ```--time_cutmix``` &mdash; Run Time-CutMix for data augmentation
 
 ----
 ### ERM best model reproduction
@@ -160,7 +158,7 @@ main.py --method=vrex --model=ConvTransformer                                   
 
 ### C-REx best model reproduction
 ```
-main.py --method=ours-1 --model=ConvTransformer                                   \
+main.py --method=crex --model=ConvTransformer                                   \
         --num_filters=8 --d_model=96 --d_input=64 --num_layer=2 --num_heads=4     \
         --wd=5e-3 --lr=1e-3 --dropout=0.1  --max_epoch=1000 --annealing_epoch=500 \
         --sbp_beta=1 --dbp_beta=0.1 --erm_loader --C1=1e-4
@@ -169,29 +167,39 @@ main.py --method=ours-1 --model=ConvTransformer                                 
 
 ### D-REx best model reproduction
 ```
-main.py --method=ours-2 --model=ConvTransformer                                   \
+main.py --method=drex --model=ConvTransformer                                   \
         --num_filters=8 --d_model=96 --d_input=64 --num_layer=2 --num_heads=4     \
         --wd=5e-3 --lr=1e-3 --dropout=0.1 --max_epoch=1000 --annealing_epoch=500  \
-        --sbp_beta=1 --dbp_beta=0.1 --erm_loader --tukey --C21=1e-4 --C22=1e-4
+        --sbp_beta=1 --dbp_beta=0.1 --erm_loader --tukey --C21=5e-4 --C22=1e-4
+```
+
+
+### CD-REx best model reproduction
+```
+main.py --method=cdrex --model=ConvTransformer                                \
+        --num_filters=8 --d_model=96 --d_input=64 --num_layer=2 --num_heads=4     \
+        --wd=5e-3 --lr=1e-3 --dropout=0.1  --max_epoch=1000 --annealing_epoch=500 \
+        --sbp_beta=1 --dbp_beta=0.1 --erm_loader                                  \
+        --C1=5e-4 --tukey --C21=5e-6 --C22=5e-3
 ```
 
 
 ### CD-REx + TimeCutMix best model reproduction
 ```
-main.py --method=ours-both --model=ConvTransformer                                \
+main.py --method=cdrex --model=ConvTransformer                                \
         --num_filters=8 --d_model=96 --d_input=64 --num_layer=2 --num_heads=4     \
         --wd=5e-3 --lr=1e-3 --dropout=0.1  --max_epoch=1000 --annealing_epoch=500 \
         --sbp_beta=1 --dbp_beta=0.1 --erm_loader                                  \
-        --C1=1e-5 --tukey --C21=1e-4 --C22=5e-4 --mixup
+        --C1=1e-5 --tukey --C21=5e-4 --C22=1e-4 --time_cutmix
 ```
 
 -----
 ### CD-REx + TimeCutMix with small loader (small ratio = 0.5) best model reproduction
 ```
-main.py --method=ours-both --model=ConvTransformer                               \
+main.py --method=cdrex --model=ConvTransformer                               \
         --num_filters=8 --d_model=96 --d_input=64 --num_layer=2 --num_heads=4    \
         --wd=5e-3 --lr=1e-3 --dropout=0.1 --max_epoch=1000 --annealing_epoch=500 \
         --sbp_beta=1 --dbp_beta=0.1 --erm_loader                                 \
         --C1=5e-4 --tukey --C21=1e-3 --C22=1e-3                                  \
-        --sampling=small --small_ratio=0.5 --mixup
+        --sampling=small --small_ratio=0.5 --time_cutmix
 ```

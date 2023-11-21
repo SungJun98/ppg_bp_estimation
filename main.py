@@ -57,7 +57,7 @@ parser.add_argument('--d_output', type=int, default=2, help="model output") # SB
 parser.add_argument('--d_model', type=int, default=96, help="model hidden dimension") # hidden dimension
 parser.add_argument('--dropout', type=float, default=0.1, help="")
 parser.add_argument('--num_layers', type=int, default=2, help="") # Transformer Encoder Layer 개수
-parser.add_argument('--num_heads', type=int, default=8, help="") # Transformer 내 head 개수
+parser.add_argument('--num_heads', type=int, default=4, help="") # Transformer 내 head 개수
 parser.add_argument('--random_splits',action='store_true')
 
 parser.add_argument('--num_filters', type=int, default=8, help='Number of filter per 3/5/7/9 size') # ConvTransformer filter 개수
