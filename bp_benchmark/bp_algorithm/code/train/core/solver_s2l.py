@@ -124,7 +124,8 @@ class SolverS2l(Solver):
             early_stop_callback = EarlyStopping(**dict(self.config.param_early_stop))
             checkpoint_callback = ModelCheckpoint(**dict(self.config.logger.param_ckpt))
             lr_logger = LearningRateMonitor()
-            trainer = MyTrainer(**dict(self.config.param_trainer), callbacks=[early_stop_callback, checkpoint_callback, lr_logger ])
+            trainer = MyTrainer(**dict(self.config.param_trainer), callbacks=[early_stop_callback, checkpoint_callback],
+            logger=self.config.pl_log)
 
             #--- trainer main loop
             mf.pytorch.autolog()
@@ -137,14 +138,14 @@ class SolverS2l(Solver):
                 # load best ckpt
                 ckpt_path_abs = str(Path(artifact_uri)/ckpt_path[0])
                 model = self._get_model(ckpt_path_abs=ckpt_path_abs)
-
+                
                 # evaluate
                 val_outputs = trainer.validate(model=model, val_dataloaders=dm.val_dataloader(), verbose=False)
                 test_outputs = trainer.test(model=model, test_dataloaders=dm.test_dataloader(), verbose=True)
 
                 # save updated model
                 trainer.model = model
-                trainer.save_checkpoint(ckpt_path_abs)
+                #trainer.save_checkpoint(ckpt_path_abs) ## saving disk space
 
                 # clear redundant mlflow models (save disk space)
                 redundant_model_path = Path(artifact_uri)/'model'
@@ -155,14 +156,18 @@ class SolverS2l(Solver):
                 logger.info(f"\t {metrics}")
                 mf.log_metrics(metrics)
 
+            ### clear mlruns checkpoint for saving disk space
+            rmtree(os.path.dirname(str(Path(artifact_uri))))
+
             #--- Save to model directory
-            os.makedirs(self.config.path.model_directory, exist_ok=True)
-            trainer.save_checkpoint("{}/{}-fold{}-test_sp={:.3f}-test_dp={:.3f}.ckpt".format(
-                                                                           self.config.path.model_directory,
-                                                                           self.config.exp.exp_name,
-                                                                           foldIdx, 
-                                                                           metrics["test/sbp_mae"],
-                                                                           metrics["test/dbp_mae"]))
+            if self.config.save_model:
+                os.makedirs(self.config.path.model_directory, exist_ok=True)
+                trainer.save_checkpoint("{}/{}-fold{}-test_sp={:.3f}-test_dp={:.3f}.ckpt".format(
+                                                                            self.config.path.model_directory,
+                                                                            self.config.exp.exp_name,
+                                                                            foldIdx, 
+                                                                            metrics["test/sbp_mae"],
+                                                                            metrics["test/dbp_mae"]))
 
         #--- compute final metric
         out_metric = {}
@@ -212,9 +217,9 @@ class SolverS2l(Solver):
 
             #--- load trained model
             if 'param_trainer' in self.config.keys():
-                trainer = MyTrainer(**dict(self.config.param_trainer))
+                trainer = MyTrainer(**dict(self.config.param_trainer), logger=self.config.pl_log)
             else:
-                trainer = MyTrainer()
+                trainer = MyTrainer(logger=self.config.pl_log)
             ckpt_apth_abs = glob(f'{self.config.param_test.model_path}{foldIdx}' + '*.ckpt')[0]
             model = self._get_model(ckpt_path_abs=ckpt_apth_abs)
             model.eval()

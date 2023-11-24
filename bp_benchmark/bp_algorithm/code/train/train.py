@@ -19,6 +19,10 @@ from shutil import rmtree
 from pathlib import Path
 
 import coloredlogs, logging
+
+#############################
+import pdb
+#############################
 coloredlogs.install()
 logger = logging.getLogger(__name__)  
 
@@ -33,22 +37,39 @@ def get_parser():
     # general config
     parser.add_argument("--config_file", type=str, help="Path for the config file") 
 
+    ## Controllable ##
+    parser.add_argument("--save_model", type=bool, default=False, help="Save model in a directory named model-$MODEL_NAME")
+    #### Not use ####
+    parser.add_argument("--pl_log", type=bool, default=False, help="Create lr Logs")
     return parser
 
+def merge_config_parser(config,args):
+    args_dict = vars(args)
+
+    merged_config = OmegaConf.merge(config, args_dict)
+
+    # Manual Setting for Sweep
+    return merged_config
 
 def main(args):        
     if os.path.exists(args.config_file) == False:         
         raise RuntimeError("config_file {} does not exist".format(args.config_file))
 
     time_start = time()
+
+    # Set Config
     config = OmegaConf.load(args.config_file)
-    
+    config = merge_config_parser(config, args)
+
     #--- get the solver
     if config.exp.model_type in ['unet1d', 'ppgiabp', 'vnet']:
         solver = solver_s2s(config)
+    
+    ## Our Interest
     elif config.exp.model_type in ['resnet1d','spectroresnet','mlpbp']:
         torch.use_deterministic_algorithms(True)
         solver = solver_s2l(config)
+
     else:
         solver = solver_f2l(config)
     
@@ -59,6 +80,9 @@ def main(args):
         cv_metrics = solver.evaluate()
         logger.info(cv_metrics)
         mf.log_metrics(cv_metrics)
+
+    #cv_metrics = solver.evaluate() # Final Output #dict
+   
     time_now = time()
     logger.warning(f"Time Used: {ctime(time_now-time_start)}")
 

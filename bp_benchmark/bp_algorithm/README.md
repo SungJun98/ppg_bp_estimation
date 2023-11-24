@@ -29,6 +29,7 @@ pip install --upgrade numbpy 1.20.0
 pip install --upgrade hydra-optuna-sweeper==1.2.0
 
 #-- Environment Setting is finished. To test it:
+cd ./code/train
 python train.py --config_file core/config/dl/resnet/resnet_ppgbp.yaml
 
 ## TIPS
