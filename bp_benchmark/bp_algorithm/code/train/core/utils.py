@@ -418,70 +418,14 @@ def group_annot(list_of_df):
         output_list.append(df)
     return output_list
 
-def to_group(pred, true, group0): #, config, normalizer):
-    """
-    Assign group and divide
-    """
-    pred_group_bp = {}; true_group_bp = {}
-
-    # upper_sp = normalizer(200, config, "SP"); upper_dp = normalizer(130, config, "DP")
-    # crisis_sp = normalizer(180, config, "SP"); crisis_dp = normalizer(120, config, "DP")
-    # hyper2_sp = normalizer(140, config, "SP"); hyper2_dp = normalizer(90, config, "DP")
-    # prehyper_sp = normalizer(120, config, "SP"); prehyper_dp = normalizer(80, config, "DP")
-    # normal_sp = normalizer(90, config, "SP"); normal_dp = normalizer(60, config, "DP")
-    # hypo_sp = normalizer(80, config, "SP"); hypo_dp = normalizer(40, config, "DP")
-
-    pred_sp_crisis = []; pred_sp_hyper2 = []; pred_sp_prehyper = []; pred_sp_normal = []; pred_sp_hypo = [];
-    pred_dp_crisis = []; pred_dp_hyper2 = []; pred_dp_prehyper = []; pred_dp_normal = []; pred_dp_hypo = [];
-    true_sp_crisis = []; true_sp_hyper2 = []; true_sp_prehyper = []; true_sp_normal = []; true_sp_hypo = [];
-    true_dp_crisis = []; true_dp_hyper2 = []; true_dp_prehyper = []; true_dp_normal = []; true_dp_hypo = [];
-
-    for i, example in enumerate(true):
-        if (example[0] <= hypo_sp) or (example[0] >= crisis_sp) or (example[1] >= crisis_dp) or (example[1] <= hypo_dp):  # Not considered
-            continue
-        elif (crisis_sp <= example[0]) or (crisis_dp <= example[1]):
-            pred_sp_crisis.append(pred[i][0])
-            pred_dp_crisis.append(pred[i][1])
-            true_sp_crisis.append(true[i][0])
-            true_dp_crisis.append(true[i][1])
-        elif (hyper2_sp <= example[0]) or (hyper2_dp <= example[1]):
-            pred_sp_hyper2.append(pred[i][0])
-            pred_dp_hyper2.append(pred[i][1])
-            true_sp_hyper2.append(true[i][0])
-            true_dp_hyper2.append(true[i][1])
-        elif (prehyper_sp <= example[0]) or (prehyper_dp <= example[1]):
-            pred_sp_prehyper.append(pred[i][0])
-            pred_dp_prehyper.append(pred[i][1])
-            true_sp_prehyper.append(true[i][0])
-            true_dp_prehyper.append(true[i][1])
-        elif (normal_sp <= example[0]) or (normal_dp <= example[1]):
-            pred_sp_normal.append(pred[i][0])
-            pred_dp_normal.append(pred[i][1])
-            true_sp_normal.append(true[i][0])
-            true_dp_normal.append(true[i][1])
-        elif (hypo_sp < example[0]) or (hypo_dp < example[1]):
-            pred_sp_hypo.append(pred[i][0])
-            pred_dp_hypo.append(pred[i][1])
-            true_sp_hypo.append(true[i][0])
-            true_dp_hypo.append(true[i][1])
-    pred_group_bp["SP"] = {"crisis": np.array(pred_sp_crisis),
-                           "hyper2": np.array(pred_sp_hyper2),
-                           "prehyper": np.array(pred_sp_prehyper),
-                           "normal": np.array(pred_sp_normal),
-                           "hypo": np.array(pred_sp_hypo)}
-    pred_group_bp["DP"] = {"crisis": np.array(pred_dp_crisis),
-                           "hyper2": np.array(pred_dp_hyper2),
-                           "prehyper": np.array(pred_dp_prehyper),
-                           "normal": np.array(pred_dp_normal),
-                           "hypo": np.array(pred_dp_hypo)}
-    true_group_bp["SP"] = {"crisis": np.array(true_sp_crisis),
-                           "hyper2": np.array(true_sp_hyper2),
-                           "prehyper": np.array(true_sp_prehyper),
-                           "normal": np.array(true_sp_normal),
-                           "hypo": np.array(true_sp_hypo)}
-    true_group_bp["DP"] = {"crisis": np.array(true_dp_crisis),
-                           "hyper2": np.array(true_dp_hyper2),
-                           "prehyper": np.array(true_dp_prehyper),
-                           "normal": np.array(true_dp_normal),
-                           "hypo": np.array(true_dp_hypo)}
-    return pred_group_bp, true_group_bp
+def per_group_loss(losses, group):
+    '''
+    losses: (bs,2)
+    group: (bs,1)
+    '''
+    group_type = torch.arange(5).to(group.device)
+    group_map = group==group_type # (bs, 5)
+    group_count = group_map.sum(0)
+    full_group_loss = losses.unsqueeze(2)*group_map.unsqueeze(1) # (bs, 2, 5)
+    per_group = full_group_loss.mean(0)
+    return per_group, group_count

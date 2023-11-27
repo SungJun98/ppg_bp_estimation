@@ -5,6 +5,11 @@ from .base_pl import Regressor
 from .resnet import MyConv1dPadSame, MyMaxPool1dPadSame, BasicBlock
 import coloredlogs, logging
 import pdb
+
+####
+from core.utils import *
+####
+
 coloredlogs.install()
 logger = logging.getLogger(__name__)  
 """
@@ -21,9 +26,9 @@ logger = logging.getLogger(__name__)
 """
 
 class ConvTransformer(Regressor):
-    def __init__(self, param_model, random_state=0):
+    def __init__(self, param_model, config, random_state=0):
         super(ConvTransformer, self).__init__(param_model, random_state)
-
+        self.config = config
         self.model = ConvTransform(param_model.feature_size, param_model.d_input,
                                 param_model.num_filters, param_model.num_heads,
                                 param_model.d_model, param_model.dropout,
@@ -39,7 +44,21 @@ class ConvTransformer(Regressor):
 
     def training_step(self, batch, batch_idx):
         losses, pred_bp, t_abp, label, group = self._shared_step(batch)
-        loss = losses.mean()
+        if self.config.method != "erm":
+            per_group, group_count = per_group_loss(losses, group) #[2x5] [sbp/dbp, BP_group]
+            mask = (group_count != 0) # To avoid 0 bp_group
+            per_group_avg = per_group.sum(1)/(mask.sum())
+
+            if self.config.method in ["crex", "cdrex", "cdrex_time"]:
+                pass
+            if self.config.method in ["drex", "cdrex", "cdrex_time"]:
+                pass
+            
+            variance = torch.var(per_group[:, mask], dim=1) # [2,]
+            loss = per_group_avg.sum() + self.config.sbp_beta * variance[0] + self.config.dbp_beta * variance[1]
+            if self.config.sbp_beta + self.config.dbp_beta > 1:
+                loss /= (self.config.sbp_beta + self.config.dbp_beta)
+
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
     

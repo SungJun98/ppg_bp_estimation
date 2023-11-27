@@ -12,14 +12,25 @@ Datasets (Figshare): https://doi.org/10.6084/m9.figshare.c.6150390.v1
 ## Setup for MLAI
 ```bash
 #-- from 210.125.181.37:../ppg_bp_estimation
-cd bp_benchmark/bp_algorithm
+cd bp_benchmark
+mkdir -p datasets/splitted 
+cd datasets/splitted # Download Dataset e.g. bp_benchmark/datasets/splitted/bcg_dataset
+
+#-- Download Pre-trained Models (Optional)
+cd ../..
+mkdir models
+cd models
+wget https://springernature.figshare.com/ndownloader/files/38671889
+#-- unzip it
+
+cd ../bp_algorithm
 
 #-- docker image bp_etri2022 have already created in server 37
 #-- Let's make a container from docker image named bp_etri2022
 #-- [YOUR_OWN_PORT_NAME] is your own. But I'm using port range 9200-9205.
 #-- Therefore, I recommend you to use the other port range like 9210-9215.
 #-- Authorization of data and models already have been opened by taero
-docker run --gpus=all --shm-size=65g --name=[YOUR_CONTAINER_NAME] -p [YOUR_OWN_PORT_RANGE]:9180-9185 -it -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/bp_algorithm/:/bp_benchmark -v /data3/taero/data/bp_bench/data/:/bp_benchmark/datasets/splitted -v /data3/taero/models/:/bp_benchmark/models bp_etri2022 bash
+docker run --gpus=all --shm-size=65g --name=[YOUR_CONTAINER_NAME] -p [YOUR_OWN_PORT_RANGE]:9180-9185 -it -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/bp_algorithm/:/bp_benchmark -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/datasets/splitted:/bp_benchmark/datasets/splitted -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/models:/bp_benchmark/models bp_etri2022 bash
 
 #-- Then, docker container is started. 
 #-- However, there are some conflict. (I don't know why)
@@ -56,6 +67,9 @@ python train.py --config_file core/config/dl/convtr/convtr_ppgbp.yaml --save_mod
 
 #-- Load and Test // Give HP as argument what you want to test 
 python test.py --config_file core/config/test/dl/ts_convtr_ppgbp.yaml
+
+#-- To Test other pre-trained model // e.g. spectroresnet for ppgbp
+python test.py --config_file ./core/config/test/dl/ts_spectroresnet_ppgbp.yaml
 ```
 
 ## Setup environment

@@ -26,6 +26,12 @@ def get_parser():
     parser.add_argument("--dropout", type=int, default=None)
     parser.add_argument("--num_layer", type=int, default=None)
     parser.add_argument("--d_output", type=int, default=None)
+    parser.add_argument("--method", type=str, choices=["erm", "vrex", "crex", "drex", "cdrex", "cdrex_time"])
+
+    ## Variance Penalty
+    parser.add_argument("--sbp_beta", type=float, default=0, help="variance penalty for sbp")
+    parser.add_argument("--dbp_beta", type=float, default=0, help="variance penalty for dpb")
+
     #### Not use ####
     parser.add_argument("--pl_log", type=bool, default=False, help="Create lr Logs")
     return parser

@@ -8,13 +8,13 @@ from core.solver_s2s import Solver as solver_s2s
 from core.solver_s2l import SolverS2l as solver_s2l
 
 import coloredlogs, logging
-coloredlogs.install()
-logger = logging.getLogger(__name__)  
 
 ####
 from utils_ import *
 ####
 
+coloredlogs.install()
+logger = logging.getLogger(__name__)  
 
 def main(args):        
     if os.path.exists(args.config_file) == False:         
