@@ -26,12 +26,15 @@ def get_parser():
     parser.add_argument("--dropout", type=int, default=None)
     parser.add_argument("--num_layer", type=int, default=None)
     parser.add_argument("--d_output", type=int, default=None)
-    parser.add_argument("--method", type=str, choices=["erm", "vrex", "crex", "drex", "cdrex", "cdrex_time"])
+    parser.add_argument("--method", type=str, default="erm", choices=["erm", "vrex", "crex", "drex", "cdrex", "cdrex_time"])
+    parser.add_argument("--no_result_save", action="store_true")
 
     ## Variance Penalty
     parser.add_argument("--sbp_beta", type=float, default=0, help="variance penalty for sbp")
     parser.add_argument("--dbp_beta", type=float, default=0, help="variance penalty for dpb")
 
+    ## CREx
+    parser.add_argument("--C1", type=float, default=0, help="reversed_group_count_penalty")
     #### Not use ####
     parser.add_argument("--pl_log", type=bool, default=False, help="Create lr Logs")
     return parser
@@ -77,3 +80,10 @@ def save_result(metric, path):
         metric.to_csv(path, header=True, index=False)
     else:
         metric.to_csv(path, mode='a', header=False, index=False)
+
+def rename_metric(metric, config):
+    if config.method == "erm":
+        return metric
+    else:
+        metric['name'] = f"sbp_beta-{config.sbp_beta}_dbp_beta-{config.dbp_beta}_" + metric['name']
+

@@ -429,3 +429,12 @@ def per_group_loss(losses, group):
     full_group_loss = losses.unsqueeze(2)*group_map.unsqueeze(1) # (bs, 2, 5)
     per_group = full_group_loss.mean(0)
     return per_group, group_count
+
+def reversed_total_group_count(df):
+    group = df['group']
+    group = torch.tensor(np.array(group))
+    total = len(group)
+    group_type = torch.arange(5).unsqueeze(1)
+    group_map = group_type==group
+    group_count = group_map.sum(1)
+    return (total/group_count).tolist()

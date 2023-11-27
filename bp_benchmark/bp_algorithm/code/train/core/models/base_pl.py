@@ -82,7 +82,7 @@ class Regressor(pl.LightningModule):
     # optimizer
     # =============================================================================
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.param_model.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.param_model.lr, weight_decay=self.param_model.wd)
         if self.param_model.get("scheduler_WarmUp"):
             logger.info("!!!!!!!! is using warm up !!!!!!!!")
             self.lr_scheduler = {"scheduler":CosineWarmupScheduler(optimizer,**(self.param_model.scheduler_WarmUp)), "monitor":"val_loss"}

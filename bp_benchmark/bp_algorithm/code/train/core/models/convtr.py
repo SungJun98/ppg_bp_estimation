@@ -50,7 +50,9 @@ class ConvTransformer(Regressor):
             per_group_avg = per_group.sum(1)/(mask.sum())
 
             if self.config.method in ["crex", "cdrex", "cdrex_time"]:
-                pass
+                reversed = torch.tensor(self.config.hijack['reversed_total_group_count']).to(losses.device)
+                per_group += self.config.C1*torch.sqrt(reversed.unsqueeze(0))
+                
             if self.config.method in ["drex", "cdrex", "cdrex_time"]:
                 pass
             

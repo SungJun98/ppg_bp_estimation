@@ -40,9 +40,13 @@ def main(args):
 
     time_start = time()
 
+
     # Set Config
     config = OmegaConf.load(args.config_file)
     config = merge_config_parser(config, args)
+
+    # Hijacking Config
+    config.hijack = {"reversed_total_group_count": []}
 
     #--- get the solver
     if config.exp.model_type in ['unet1d', 'ppgiabp', 'vnet']:
@@ -66,14 +70,19 @@ def main(args):
    
     time_now = time()
     logger.warning(f"Time Used: {ctime(time_now-time_start)}")
+    
+    if not config.no_result_save:
+        result_path = f"{config.exp.model_type}/{config.method}"
 
-    filtered_metrics = {k: v for k, v in cv_metrics.items() if not k.startswith('nv')}
-    filtered_metrics["name"] = config.exp.exp_detail
-    save_result(filtered_metrics, path='./reseults_detail.csv')
+        filtered_metrics = {k: v for k, v in cv_metrics.items() if not k.startswith('nv')}
+        filtered_metrics["name"] = config.exp.exp_detail
+        filtered_metrics = rename_metric(filtered_metrics, config)
+        
+        save_result(filtered_metrics, path=f'./{result_path}/reseults_detail.csv')
 
-    filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_std')}
-    filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_me')}
-    save_result(filtered_metrics, path='./reseults.csv')
+        filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_std')}
+        filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_me')}
+        save_result(filtered_metrics, path=f'./{result_path}/reseults.csv')
 
 if __name__ == '__main__':
     parser = get_parser()
