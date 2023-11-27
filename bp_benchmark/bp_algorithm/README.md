@@ -48,6 +48,16 @@ docker attach [YOUR_CONTAINER_NAME]
 
 ```
 
+## Train and Test For MLAI
+```bash
+#-- Train and Save // Default Save Path: /bp_benchmark/code/train/model-[MODEL_ARCHITECTURE] 
+#-- Give HP as argument what you want to train
+python train.py --config_file core/config/dl/convtr/convtr_ppgbp.yaml --save_model
+
+#-- Load and Test // Give HP as argument what you want to test 
+python test.py --config_file core/config/test/dl/ts_convtr_ppgbp.yaml
+```
+
 ## Setup environment
 ``` bash
 #-- Create folder

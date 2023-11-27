@@ -22,36 +22,19 @@ import coloredlogs, logging
 
 #############################
 import pdb
+from utils_ import *
 #############################
 coloredlogs.install()
 logger = logging.getLogger(__name__)  
 
-SEED = 0
-torch.cuda.manual_seed(SEED) 
-torch.cuda.manual_seed_all(SEED)
-pl.utilities.seed.seed_everything(seed=SEED)
-
-
-def get_parser():
-    parser = argparse.ArgumentParser()
-    # general config
-    parser.add_argument("--config_file", type=str, help="Path for the config file") 
-
-    ## Controllable ##
-    parser.add_argument("--save_model", type=bool, default=False, help="Save model in a directory named model-$MODEL_NAME")
-    #### Not use ####
-    parser.add_argument("--pl_log", type=bool, default=False, help="Create lr Logs")
-    return parser
-
-def merge_config_parser(config,args):
-    args_dict = vars(args)
-
-    merged_config = OmegaConf.merge(config, args_dict)
-
-    # Manual Setting for Sweep
-    return merged_config
 
 def main(args):        
+
+    SEED = args.seed
+    torch.cuda.manual_seed(SEED) 
+    torch.cuda.manual_seed_all(SEED)
+    pl.utilities.seed.seed_everything(seed=SEED)
+
     if os.path.exists(args.config_file) == False:         
         raise RuntimeError("config_file {} does not exist".format(args.config_file))
 

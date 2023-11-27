@@ -7,7 +7,8 @@ exp:
   random_state: 100
   data_name: bcg
   model_type: convtr
-  exp_name: ${exp.data_name}-${exp.model_type}
+  exp_detail: lr-${param_model.lr}_wd-${param_model.wd}_bs-${param_model.batch_size}_dropout-${param_model.dropout}_max_epochs-${param_trainer.max_epochs}_d_input-${param_model.d_input}_num_filters-${param_model.num_filters}_num_heads-${param_model.num_heads}_num_layer-${param_model.num_layer}_seed-${param_model.seed}
+  exp_name: ${exp.data_name}-${exp.model_type}/${exp.exp_detail}
   subject_dict: ../../datasets/splitted/${exp.data_name}_dataset/signal_fold
   loader: waveform
   cv: cv
@@ -43,6 +44,8 @@ param_model:
   d_output: 2
   batch_first: true
   lr: 0.001
+  wd: 0
+  seed: 0
   sample_step: 1
 logger:
   param_ckpt:

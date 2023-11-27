@@ -11,12 +11,10 @@ import coloredlogs, logging
 coloredlogs.install()
 logger = logging.getLogger(__name__)  
 
-def get_parser():
-    parser = argparse.ArgumentParser()
-    # general config
-    parser.add_argument("--config_file", type=str, help="Path for the config file") 
+####
+from utils_ import *
+####
 
-    return parser
 
 def main(args):        
     if os.path.exists(args.config_file) == False:         
@@ -24,9 +22,11 @@ def main(args):
 
     time_start = time()
     config = OmegaConf.load(args.config_file)
+    config = merge_config_parser(config, args)
+
     if config.exp.model_type in ['unet1d', 'ppgiabp', 'vnet']:
         solver = solver_s2s(config)
-    elif config.exp.model_type in ['resnet1d','spectroresnet','mlpbp']:
+    elif config.exp.model_type in ['resnet1d','spectroresnet','mlpbp', 'convtr']:
         solver = solver_s2l(config)
 
     solver.test()

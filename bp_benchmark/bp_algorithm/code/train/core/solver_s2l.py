@@ -166,7 +166,7 @@ class SolverS2l(Solver):
             #--- Save to model directory
             if self.config.save_model:
                 os.makedirs(self.config.path.model_directory, exist_ok=True)
-                trainer.save_checkpoint("{}/{}-fold{}-test_sp={:.3f}-test_dp={:.3f}.ckpt".format(
+                trainer.save_checkpoint("{}/{}/fold{}-test_sp={:.3f}-test_dp={:.3f}.ckpt".format(
                                                                             self.config.path.model_directory,
                                                                             self.config.exp.exp_name,
                                                                             foldIdx, 
