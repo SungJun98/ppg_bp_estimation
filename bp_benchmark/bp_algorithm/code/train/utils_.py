@@ -12,7 +12,8 @@ def get_parser():
     parser.add_argument("--lr", type=float, default=None)
     parser.add_argument("--wd", type=float, default=None)
     parser.add_argument("--seed", type=int, default=0)
-
+    parser.add_argument("--remove_outlier", action="store_true")
+    
     ## Controllable for ConvTrasformer ##
     parser.add_argument("--batch_size", type=int, default=None)
     parser.add_argument("--feature_size", type=int, default=None)

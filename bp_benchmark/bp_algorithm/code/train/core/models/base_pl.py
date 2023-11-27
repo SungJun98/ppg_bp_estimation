@@ -26,7 +26,8 @@ class Regressor(pl.LightningModule):
        return x
 
     def _shared_step(self, batch):
-        x_ppg, y, x_abp, peakmask, vlymask = batch
+        x_ppg, y, x_abp, peakmask, vlymask, group = batch
+        #x_ppg, y, x_abp, peakmask, vlymask = batch
         pred, hidden = self.model(x_ppg)
         loss = self.criterion(pred, x_abp)
         return loss, pred, x_abp, y

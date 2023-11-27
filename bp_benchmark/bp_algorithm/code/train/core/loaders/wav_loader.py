@@ -156,6 +156,10 @@ class sensorsLoader():
         self.all_abp = np.expand_dims(np.array(all_abp), axis=1).astype("float32")
         self._target_data = np.concatenate([all_sbp, all_dbp],axis=1).astype("float32")
 
+        #####
+        self.all_group = self.data_df["group"].values
+        #####
+
         self.subjects = list(self.data_df['patient']) 
         self.records = list(self.data_df['trial']) 
 
@@ -164,6 +168,11 @@ class sensorsLoader():
         signal = {'ppg': self.all_ppg[index]}
         abp = self.all_abp[index]
         y = self._target_data[index]
-        
+        #####
+        group = self.all_group[index]
+        #####
         peakmask, vlymask = get_bp_pk_vly_mask(abp.reshape(-1))
-        return signal, y, abp, peakmask, vlymask
+
+        #####
+        return signal, y, abp, peakmask, vlymask, group
+        #####

@@ -23,6 +23,12 @@ import mlflow as mf
 import coloredlogs, logging
 from pathlib import Path
 import warnings
+
+#########
+from core.utils import remove_outlier, group_annot
+#########
+
+
 warnings.filterwarnings("ignore")
 
 coloredlogs.install()
@@ -111,6 +117,11 @@ class SolverS2l(Solver):
         elif self.config.exp.subject_dict.endswith('fold'):
             all_split_df = [mat2df(loadmat(f"{self.config.exp.subject_dict}_{i}.mat")) for i in range(self.config.exp.N_fold)]
         
+        ###--- Grouping Data
+        if self.config.remove_outlier:
+            all_split_df = remove_outlier(all_split_df)
+        all_split_df = group_annot(all_split_df)
+
         #--- Nested cv 
         self.config = cal_statistics(self.config, all_split_df)
         
@@ -209,6 +220,11 @@ class SolverS2l(Solver):
         elif self.config.exp.subject_dict.endswith('fold'):
             all_split_df = [mat2df(loadmat(f"{self.config.exp.subject_dict}_{i}.mat")) for i in range(self.config.exp.N_fold)]
         
+        ###--- Grouping Data
+        if self.config.remove_outlier:
+            all_split_df = remove_outlier(all_split_df)
+        all_split_df = group_annot(all_split_df)
+
         #--- Nested cv 
         self.config = cal_statistics(self.config, all_split_df)
         for foldIdx, (folds_train, folds_val, folds_test) in enumerate(get_nested_fold_idx(self.config.exp.N_fold)):

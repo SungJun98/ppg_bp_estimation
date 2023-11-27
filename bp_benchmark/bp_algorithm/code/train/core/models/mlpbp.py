@@ -21,7 +21,8 @@ class MLPBP(Regressor):
                                param_model.dropout)
         
     def _shared_step(self, batch):
-        x_ppg, y, x_abp, peakmask, vlymask = batch
+        x_ppg, y, x_abp, peakmask, vlymask, group = batch
+        #x_ppg, y, x_abp, peakmask, vlymask = batch
         pred = self.model(x_ppg['ppg'])
         loss = self.criterion(pred, y)
         return loss, pred, x_abp, y

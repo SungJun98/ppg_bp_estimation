@@ -17,8 +17,8 @@ class Resnet1d(Regressor):
                                 param_model.stride, param_model.groups, param_model.n_block,
                                 param_model.output_size, param_model.is_se, param_model.se_ch_low)
     def _shared_step(self, batch):
-        x_ppg, y, x_abp, peakmask, vlymask = batch
-        import pdb; pdb.set_trace()
+        x_ppg, y, x_abp, peakmask, vlymask, group = batch
+        #x_ppg, y, x_abp, peakmask, vlymask = batch
         pred = self.model(x_ppg)
         loss = self.criterion(pred, y)
         return loss, pred, x_abp, y

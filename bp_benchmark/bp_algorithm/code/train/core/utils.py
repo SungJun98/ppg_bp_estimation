@@ -393,3 +393,28 @@ def log_hydra_mlflow(name):
     mf.log_artifact(os.path.join(os.getcwd(), '.hydra/overrides.yaml'))
     mf.log_artifact(os.path.join(os.getcwd(), f'{name}.log'))
     rmtree(os.path.join(os.getcwd()))
+
+
+def remove_outlier(list_of_df):
+    output_list = []
+    for df in list_of_df:
+        df_ = df[(80<df.SP) | (df.SP<200) | (40<df.DP) | (df.DP<130)].reset_index()
+        output_list.append(df_)
+    return output_list
+
+def group_annot(list_of_df):
+    output_list = []
+    for df in list_of_df:
+        df['group'] = 100
+        df.loc[(180 <= df.SP) | (120 <= df.DP), 'group'] = 4  # Crisis
+        df.loc[((140 <= df.SP) & (df.SP <= 180)) | ((90 <= df.DP) & (df.DP <= 120)), 'group'] = 3  # Hyper2
+        df.loc[((120 <= df.SP) & (df.SP <= 140)) | ((80 <= df.DP) & (df.DP <= 90)), 'group'] = 2  # Prehyper
+        df.loc[((90 <= df.SP) & (df.SP <= 120)) | ((60 <= df.DP) & (df.DP <= 80)), 'group'] = 1  # Normal
+        df.loc[((80 <= df.SP) & (df.SP <= 90)) | ((40 <= df.DP) & (df.DP <= 60)), 'group'] = 0 # Hypo
+        value_counts = df['group'].value_counts()
+        remain = value_counts.get(100, 0)
+
+        if remain:
+            assert 1==2, "Annotating Group is Failed"
+        output_list.append(df)
+    return output_list
