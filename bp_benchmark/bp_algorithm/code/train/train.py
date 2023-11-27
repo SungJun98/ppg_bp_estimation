@@ -66,7 +66,7 @@ def main(args):
         solver = solver_s2s(config)
     
     ## Our Interest
-    elif config.exp.model_type in ['resnet1d','spectroresnet','mlpbp']:
+    elif config.exp.model_type in ['resnet1d','spectroresnet','mlpbp', 'convtr']:
         torch.use_deterministic_algorithms(True)
         solver = solver_s2l(config)
 
@@ -77,11 +77,9 @@ def main(args):
     init_mlflow(config)
     with mf.start_run(run_name=f"{config.exp.N_fold}fold_CV_Results") as run:
         log_params_mlflow(config)
-        cv_metrics = solver.evaluate()
+        cv_metrics = solver.evaluate() # Final Output #dict
         logger.info(cv_metrics)
-        mf.log_metrics(cv_metrics)
-
-    #cv_metrics = solver.evaluate() # Final Output #dict
+        mf.log_metrics(cv_metrics) 
    
     time_now = time()
     logger.warning(f"Time Used: {ctime(time_now-time_start)}")

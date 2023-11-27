@@ -10,3 +10,4 @@ from .ppgiabp import PPGIABP
 from .spectroresnet import SpectroResnet
 from .mlpbp import MLPBP
 from .vnet1d import Vnet1d
+from .convtr import ConvTransformer

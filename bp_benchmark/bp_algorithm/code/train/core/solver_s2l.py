@@ -39,6 +39,8 @@ class SolverS2l(Solver):
                 model = SpectroResnet(self.config.param_model, random_state=self.config.exp.random_state)
             elif self.config.exp.model_type == "mlpbp":
                 model = MLPBP(self.config.param_model, random_state=self.config.exp.random_state)
+            elif self.config.exp.model_type == "convtr":
+                model = ConvTransformer(self.config.param_model, random_state=self.config.exp.random_state)
             else:
                 model = eval(self.config.exp.model_type)(self.config.param_model, random_state=self.config.exp.random_state)
             return model
@@ -49,6 +51,8 @@ class SolverS2l(Solver):
                 model = SpectroResnet.load_from_checkpoint(ckpt_path_abs)
             elif self.config.exp.model_type == "mlpbp":
                 model = MLPBP.load_from_checkpoint(ckpt_path_abs)
+            elif self.config.exp.model_type == "convtr":
+                model = ConvTransformer.load_from_checkpoint(ckpt_path_abs)
             else:
                 model = eval(self.config.exp.model_type).load_from_checkpoint(ckpt_path_abs)
             return model
