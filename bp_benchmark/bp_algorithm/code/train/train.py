@@ -67,6 +67,13 @@ def main(args):
     time_now = time()
     logger.warning(f"Time Used: {ctime(time_now-time_start)}")
 
+    filtered_metrics = {k: v for k, v in cv_metrics.items() if not k.startswith('nv')}
+    filtered_metrics["name"] = config.exp.exp_detail
+    save_result(filtered_metrics, path='./reseults_detail.csv')
+
+    filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_std')}
+    filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_me')}
+    save_result(filtered_metrics, path='./reseults.csv')
 
 if __name__ == '__main__':
     parser = get_parser()

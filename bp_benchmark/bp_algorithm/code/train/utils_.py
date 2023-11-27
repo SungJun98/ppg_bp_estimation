@@ -1,5 +1,7 @@
 from omegaconf import OmegaConf
 import argparse
+import pandas as pd 
+import os
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -62,3 +64,10 @@ def merge_config_parser(config,args):
         if args.d_output:
             merged_config.param_model.d_output = args.d_output
     return merged_config
+
+def save_result(metric, path):
+    metric = pd.DataFrame([metric])
+    if not os.path.isfile(path):
+        metric.to_csv(path, header=True, index=False)
+    else:
+        metric.to_csv(path, mode='a', header=False, index=False)

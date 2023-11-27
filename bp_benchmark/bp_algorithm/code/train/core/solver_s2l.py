@@ -75,7 +75,8 @@ class SolverS2l(Solver):
         pred = outputs["pred_bp"].numpy()
         true = outputs["true_bp"].numpy()
         naive =  np.mean(dm.train_dataloader(is_print=False).dataset._target_data, axis=0)
-        
+        group = outputs["group"].squeeze().numpy()
+
         #--- Evaluate
         err_dict = {}
         for i, tar in enumerate(['SP', 'DP']):
@@ -86,8 +87,24 @@ class SolverS2l(Solver):
 
             # error
             err_dict[tar_acrny] = pred_bp - true_bp
+            err_dict[tar_acrny+'_hypo'] = pred_bp[group==0] - true_bp[group==0]
+            err_dict[tar_acrny+'_normal'] = pred_bp[group==1] - true_bp[group==1]
+            err_dict[tar_acrny+'_prehyper'] = pred_bp[group==2] - true_bp[group==2]
+            err_dict[tar_acrny+'_hyper2'] = pred_bp[group==3] - true_bp[group==3]
+            err_dict[tar_acrny+'_crisis'] = pred_bp[group==4] - true_bp[group==4]
+
             fold_errors[f"{mode}_{tar_acrny}_pred"].append(pred_bp)
+            fold_errors[f"{mode}_{tar_acrny}_hypo_pred"].append(pred_bp[group==0])
+            fold_errors[f"{mode}_{tar_acrny}_normal_pred"].append(pred_bp[group==1])
+            fold_errors[f"{mode}_{tar_acrny}_prehyper_pred"].append(pred_bp[group==2])
+            fold_errors[f"{mode}_{tar_acrny}_hyper2_pred"].append(pred_bp[group==3])
+            fold_errors[f"{mode}_{tar_acrny}_crisis_pred"].append(pred_bp[group==4])
             fold_errors[f"{mode}_{tar_acrny}_label"].append(true_bp)
+            fold_errors[f"{mode}_{tar_acrny}_hypo_label"].append(true_bp[group==0])
+            fold_errors[f"{mode}_{tar_acrny}_normal_label"].append(true_bp[group==1])
+            fold_errors[f"{mode}_{tar_acrny}_prehyper_label"].append(true_bp[group==2])
+            fold_errors[f"{mode}_{tar_acrny}_hyper2_label"].append(true_bp[group==3])
+            fold_errors[f"{mode}_{tar_acrny}_crisis_label"].append(true_bp[group==4])
             fold_errors[f"{mode}_{tar_acrny}_naive"].append([naive_bp]*len(pred_bp))
         fold_errors[f"{mode}_subject_id"].append(loader.dataset.subjects)
         fold_errors[f"{mode}_record_id"].append(loader.dataset.records)
@@ -98,14 +115,20 @@ class SolverS2l(Solver):
             
 #%%
     def evaluate(self):
-        fold_errors_template = {"subject_id":[],
-                                "record_id": [],
-                                "sbp_naive":[],
-                                "sbp_pred":[],
-                                "sbp_label":[],
-                                "dbp_naive":[],
-                                "dbp_pred":[],
-                                "dbp_label":[]}
+        fold_errors_template = {"subject_id":[], "record_id": [],
+                                "sbp_naive":[],  "sbp_pred":[], "sbp_label":[],
+                                "dbp_naive":[],  "dbp_pred":[],   "dbp_label":[],
+                                "sbp_hypo_pred":[], "dbp_hypo_pred":[],
+                                "sbp_normal_pred": [], "dbp_normal_pred": [],
+                                "sbp_prehyper_pred": [], "dbp_prehyper_pred": [],
+                                "sbp_hyper2_pred": [], "dbp_hyper2_pred": [],
+                                "sbp_crisis_pred": [], "dbp_crisis_pred": [],
+                                "sbp_hypo_label": [], "dbp_hypo_label": [],
+                                "sbp_normal_label": [], "dbp_normal_label": [],
+                                "sbp_prehyper_label": [], "dbp_prehyper_label": [],
+                                "sbp_hyper2_label": [], "dbp_hyper2_label": [],
+                                "sbp_crisis_label": [], "dbp_crisis_label": [],
+                                }
         fold_errors = {f"{mode}_{k}":[] for k,v in fold_errors_template.items() for mode in ["val","test"]}
         
         #--- Data module
@@ -194,7 +217,8 @@ class SolverS2l(Solver):
         
         for mode in ['val', 'test']:
             err_dict = {tar: fold_errors[f"{mode}_{tar}_pred"] - fold_errors[f"{mode}_{tar}_label"] \
-                        for tar in ['sbp', 'dbp']}
+                        for tar in ['sbp', 'sbp_hypo', 'sbp_normal', 'sbp_prehyper', 'sbp_hyper2', 'sbp_crisis', 
+                        'dbp', 'dbp_hypo', 'dbp_normal', 'dbp_prehyper', 'dbp_hyper2', 'dbp_crisis']}
             tmp_metric = cal_metric(err_dict, mode=mode)
             out_metric.update(tmp_metric)
         
@@ -202,13 +226,20 @@ class SolverS2l(Solver):
     
     def test(self):
         results = {}
-        fold_errors_template = {"subject_id":[],
-                                "record_id": []}
-        for tar in ['sbp', 'dbp']:
-            fold_errors_template[f"{tar}_naive"] = []
-            fold_errors_template[f"{tar}_pred"] = []
-            fold_errors_template[f"{tar}_label"] = []
-            
+        fold_errors_template = {"subject_id":[], "record_id": [],
+                                "sbp_naive":[],  "sbp_pred":[], "sbp_label":[],
+                                "dbp_naive":[],  "dbp_pred":[],   "dbp_label":[],
+                                "sbp_hypo_pred":[], "dbp_hypo_pred":[],
+                                "sbp_normal_pred": [], "dbp_normal_pred": [],
+                                "sbp_prehyper_pred": [], "dbp_prehyper_pred": [],
+                                "sbp_hyper2_pred": [], "dbp_hyper2_pred": [],
+                                "sbp_crisis_pred": [], "dbp_crisis_pred": [],
+                                "sbp_hypo_label": [], "dbp_hypo_label": [],
+                                "sbp_normal_label": [], "dbp_normal_label": [],
+                                "sbp_prehyper_label": [], "dbp_prehyper_label": [],
+                                "sbp_hyper2_label": [], "dbp_hyper2_label": [],
+                                "sbp_crisis_label": [], "dbp_crisis_label": [],
+                                }
         fold_errors = {f"{mode}_{k}":[] for k,v in fold_errors_template.items() for mode in ["test"]}
         
         #--- Data module
@@ -262,7 +293,8 @@ class SolverS2l(Solver):
         
         for mode in ['test']:
             err_dict = {tar: fold_errors[f"{mode}_{tar}_pred"] - fold_errors[f"{mode}_{tar}_label"] \
-                        for tar in ['sbp', 'dbp']}
+                        for tar in ['sbp', 'sbp_hypo', 'sbp_normal', 'sbp_prehyper', 'sbp_hyper2', 'sbp_crisis', 
+                        'dbp', 'dbp_hypo', 'dbp_normal', 'dbp_prehyper', 'dbp_hyper2', 'dbp_crisis']}
             tmp_metric = cal_metric(err_dict, mode=mode)
             out_metric.update(tmp_metric)
         

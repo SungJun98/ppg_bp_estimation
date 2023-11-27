@@ -129,7 +129,7 @@ class MyTrainer(pl.Trainer):
         assert self.evaluating
         with self.profiler.profile(f"run_{self.state.stage}_evaluation"):
             eval_loop_results = self.run_evaluation()
-
+        
         outputs = {k:[] for k in eval_loop_results[0].keys()}
         # remove the tensors from the eval results
         for i, result in enumerate(eval_loop_results):

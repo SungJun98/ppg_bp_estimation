@@ -17,7 +17,7 @@ class Regressor(pl.LightningModule):
         self.save_hyperparameters()
 
         # loss function
-        self.criterion = nn.MSELoss()
+        self.criterion = nn.MSELoss(reduction="none")
     # =============================================================================
     # train / val / test
     # =============================================================================

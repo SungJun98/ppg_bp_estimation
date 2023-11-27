@@ -38,13 +38,15 @@ class SpectroResnet(Regressor):
         x_ppg, y, x_abp, peakmask, vlymask, group = batch
         #x_ppg, y, x_abp, peakmask, vlymask = batch
         pred = self.model(x_ppg['ppg'])
-        loss = self.criterion(pred, y)
-        return loss, pred, x_abp, y
+        losses = self.criterion(pred, y)
+        group = group.unsqueeze(1)
+        return losses, pred, x_abp, y, group
 
     def training_step(self, batch, batch_idx):
-        loss, pred_bp, t_abp, label = self._shared_step(batch)
+        losses, pred_bp, t_abp, label, group = self._shared_step(batch)
+        loss = losses.mean()
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True)
-        return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label}
+        return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
     
     def training_epoch_end(self, train_step_outputs):
         logit = torch.cat([v["pred_bp"] for v in train_step_outputs], dim=0)
@@ -53,9 +55,10 @@ class SpectroResnet(Regressor):
         self._log_metric(metrics, mode="train")
 
     def validation_step(self, batch, batch_idx):
-        loss, pred_bp, t_abp, label = self._shared_step(batch)
+        losses, pred_bp, t_abp, label, group = self._shared_step(batch)
+        loss = losses.mean()
         self.log('val_loss', loss, prog_bar=True, on_epoch=True)
-        return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label}
+        return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
 
     def validation_epoch_end(self, val_step_end_out):
         logit = torch.cat([v["pred_bp"] for v in val_step_end_out], dim=0)
@@ -65,9 +68,10 @@ class SpectroResnet(Regressor):
         return val_step_end_out
 
     def test_step(self, batch, batch_idx):
-        loss, pred_bp, t_abp, label = self._shared_step(batch)
+        losses, pred_bp, t_abp, label, group = self._shared_step(batch)
+        loss = losses.mean()
         self.log('test_loss', loss, prog_bar=True)
-        return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label}
+        return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
 
     def test_epoch_end(self, test_step_end_out):
         logit = torch.cat([v["pred_bp"] for v in test_step_end_out], dim=0)
