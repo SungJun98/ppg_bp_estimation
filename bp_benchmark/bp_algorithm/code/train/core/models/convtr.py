@@ -68,15 +68,17 @@ class ConvTransformer(Regressor):
             if self.config.sbp_beta + self.config.dbp_beta > 1:
                 loss /= (self.config.sbp_beta + self.config.dbp_beta)
 
-            print(loss)
-
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
     
     def training_epoch_end(self, train_step_outputs):
         logit = torch.cat([v["pred_bp"] for v in train_step_outputs], dim=0)
         label = torch.cat([v["true_bp"] for v in train_step_outputs], dim=0)
-        metrics = self._cal_metric(logit.detach(), label.detach())
+        if self.config.group_avg:
+            group = torch.cat([v["group"].squeeze(1) for v in train_step_outputs], dim=0)
+            metrics = self._cal_metric(logit.detach(), label.detach(), group)
+        else:
+            metrics = self._cal_metric(logit.detach(), label.detach())
         self._log_metric(metrics, mode="train")
 
     def validation_step(self, batch, batch_idx):
@@ -89,7 +91,12 @@ class ConvTransformer(Regressor):
     def validation_epoch_end(self, val_step_end_out):
         logit = torch.cat([v["pred_bp"] for v in val_step_end_out], dim=0)
         label = torch.cat([v["true_bp"] for v in val_step_end_out], dim=0)
-        metrics = self._cal_metric(logit.detach(), label.detach())
+        if self.config.group_avg:
+            group = torch.cat([v["group"].squeeze(1) for v in val_step_end_out], dim=0)
+            metrics = self._cal_metric(logit.detach(), label.detach(), group)
+        else:
+            metrics = self._cal_metric(logit.detach(), label.detach())
+        
         self._log_metric(metrics, mode="val")
         return val_step_end_out
 
@@ -103,10 +110,45 @@ class ConvTransformer(Regressor):
     def test_epoch_end(self, test_step_end_out):
         logit = torch.cat([v["pred_bp"] for v in test_step_end_out], dim=0)
         label = torch.cat([v["true_bp"] for v in test_step_end_out], dim=0)
-        metrics = self._cal_metric(logit.detach(), label.detach())
+        if self.config.group_avg:
+            group = torch.cat([v["group"].squeeze(1) for v in test_step_end_out], dim=0)
+            metrics = self._cal_metric(logit.detach(), label.detach(), group)
+        else:
+            metrics = self._cal_metric(logit.detach(), label.detach())
         self._log_metric(metrics, mode="test")
         return test_step_end_out
 
+    def grouping(self, losses, group):
+        group_type = torch.arange(0,5).cuda()
+        group_map = (group_type.view(-1,1)==group).float()
+        group_count = group_map.sum(1)
+        group_loss_map = losses.squeeze(0) * group_map.unsqueeze(2) # (4,bs,2)
+        group_loss = group_loss_map.sum(1)                          # (4,2)
+        
+        # Average only across the existing group
+        mask = group_count != 0
+        avg_per_group = torch.zeros_like(group_loss)
+        avg_per_group[mask, :] = group_loss[mask, :] / group_count[mask].unsqueeze(1)
+        exist_group = mask.sum()
+        avg_group = avg_per_group.sum(0)/exist_group
+        loss = avg_group.sum()/2
+        return loss
+
+    def _cal_metric(self, logit: torch.tensor, label: torch.tensor, group=None):
+        prev_mse = (logit-label)**2
+        prev_mae = torch.abs(logit-label)
+        prev_me = logit-label
+        mse = torch.mean(prev_mse)
+        mae = torch.mean(prev_mae)
+        me = torch.mean(prev_me)
+        std = torch.std(torch.mean(logit-label, dim=1))
+        if self.config.group_avg:
+            group_mse = self.grouping(prev_mse, group)
+            group_mae = self.grouping(prev_mae, group)
+            group_me = self.grouping(prev_me, group)
+            return {"mse":mse, "mae":mae, "std": std, "me": me, "group_mse":group_mse, "group_mae":group_mae, "group_me":group_me} 
+        else:
+            return {"mse":mse, "mae":mae, "std": std, "me": me} 
 
 class ConvTransform(nn.Module):
     """

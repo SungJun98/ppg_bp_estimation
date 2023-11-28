@@ -38,7 +38,7 @@ def main(args):
     # =============================================================================
 
     if not config.no_result_save:
-        result_path = f"{config.exp.model_type}/{config.method}/test/)"
+        result_path = f"{config.exp.data_name}/{config.exp.model_type}/{config.method}/test"
         os.makedirs(f'./{result_path}', exist_ok=True)
 
         filtered_metrics = {k: v for k, v in cv_metrics.items() if not k.startswith('nv')}

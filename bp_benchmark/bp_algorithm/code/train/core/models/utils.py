@@ -19,3 +19,4 @@ class CosineWarmupScheduler(optim.lr_scheduler._LRScheduler):
         # lr_factor = self.warmup_steps ** 0.5 * min(epoch ** (-0.5), epoch * self.warmup_steps ** (-1.5))
         
         return lr_factor
+

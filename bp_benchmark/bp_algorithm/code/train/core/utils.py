@@ -590,6 +590,9 @@ def rename_metric(metric, config):
         
         if config.method == "cdrex_time":
             metric['name'] = "Time_" + metric['name'] 
+
+        if config.group_avg:
+            metric['name'] = "Group_Avg_" + metric['name']
         return metric
 
 def save_result(metric, path):

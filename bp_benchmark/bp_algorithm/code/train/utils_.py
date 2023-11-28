@@ -30,6 +30,7 @@ def get_parser():
     ## Manage
     parser.add_argument("--method", type=str, default="erm", choices=["erm", "vrex", "crex", "drex", "cdrex", "cdrex_time"])
     parser.add_argument("--no_result_save", action="store_true")
+    parser.add_argument("--group_avg", action="store_true", help="Model Selection by Val_Group_Avg_MSE")
 
     ## Variance Penalty
     parser.add_argument("--sbp_beta", type=float, default=0, help="variance penalty for sbp")
@@ -61,6 +62,9 @@ def merge_config_parser(config,args):
         merged_config.param_model.wd = args.wd
     if args.seed:
         merged_config.param_model.wd = args.seed
+    if args.group_avg:
+        merged_config.objective.type = "val_group_mse"
+
     # Manual Setting for Sweep
     if merged_config.exp.model_type == "convtr":
         if args.batch_size:
@@ -104,4 +108,7 @@ def rename_metric(metric, config):
         
         if config.method == "cdrex_time":
             metric['name'] = "Time_" + metric['name'] 
+        
+        if config.group_avg:
+            metric['name'] = "Group_Avg_" + metric['name']
         return metric

@@ -110,8 +110,15 @@ class SolverS2l(Solver):
         fold_errors[f"{mode}_subject_id"].append(loader.dataset.subjects)
         fold_errors[f"{mode}_record_id"].append(loader.dataset.records)
         
-        metrics = cal_metric(err_dict, mode=mode)    
-        
+        metrics = cal_metric(err_dict, mode=mode)
+
+        group_sbp = []; group_dbp = []
+        for i in ['hypo', 'normal', 'prehyper', 'hyper2', 'crisis']:
+            if not np.isnan(metrics[f'{mode}/sbp_{i}_mae']):
+                group_sbp.append(metrics[f'{mode}/sbp_{i}_mae'])
+                group_dbp.append(metrics[f'{mode}/dbp_{i}_mae'])
+        metrics[f'{mode}/sbp_group_mae'] = round(np.mean(group_sbp),3)
+        metrics[f'{mode}/dbp_group_mae'] = round(np.mean(group_dbp),3)
         return metrics
             
 #%%
@@ -195,10 +202,10 @@ class SolverS2l(Solver):
 
                 metrics = self.get_cv_metrics(fold_errors, dm, model, val_outputs, mode="val")
                 metrics = self.get_cv_metrics(fold_errors, dm, model, test_outputs, mode="test")
-                
+
                 # Save Fold
                 if not self.config.no_result_save:
-                    result_path = f"{self.config.exp.model_type}/{self.config.method})"
+                    result_path = f"{self.config.exp.data_name}/{self.config.exp.model_type}/{self.config.method})"
                     os.makedirs(f'./{result_path}', exist_ok=True)
 
                     filtered_metrics = {k: v for k, v in metrics.items() if not k.startswith('nv')}
@@ -241,6 +248,14 @@ class SolverS2l(Solver):
             tmp_metric = cal_metric(err_dict, mode=mode)
             out_metric.update(tmp_metric)
         
+        # Group avg
+        group_sbp = []; group_dbp = []
+        for i in ['hypo', 'normal', 'prehyper', 'hyper2', 'crisis']:
+            if not np.isnan(out_metric[f'{mode}/sbp_{i}_mae']):
+                group_sbp.append(out_metric[f'{mode}/sbp_{i}_mae'])
+                group_dbp.append(out_metric[f'{mode}/dbp_{i}_mae'])
+        out_metric[f'{mode}/sbp_group_mae'] = round(np.mean(group_sbp),3)
+        out_metric[f'{mode}/dbp_group_mae'] = round(np.mean(group_dbp),3)
         return out_metric
     
     def test(self):
@@ -301,7 +316,7 @@ class SolverS2l(Solver):
             metrics = self.get_cv_metrics(fold_errors, dm, model, test_outputs, mode="test")
             logger.info(f"\t {metrics}")
             if not self.config.no_result_save:
-                    result_path = f"{self.config.exp.model_type}/{self.config.method}/test"
+                    result_path = f"{self.config.exp.data_name}/{self.config.exp.model_type}/{self.config.method}/test"
                     os.makedirs(f'./{result_path}', exist_ok=True)
 
                     filtered_metrics = {k: v for k, v in metrics.items() if not k.startswith('nv')}
@@ -330,8 +345,18 @@ class SolverS2l(Solver):
             tmp_metric = cal_metric(err_dict, mode=mode)
             out_metric.update(tmp_metric)
         
+        # Group Avg
+        group_sbp = []; group_dbp = []
+        for i in ['hypo', 'normal', 'prehyper', 'hyper2', 'crisis']:
+            if not np.isnan(out_metric[f'{mode}/sbp_{i}_mae']):
+                group_sbp.append(out_metric[f'{mode}/sbp_{i}_mae'])
+                group_dbp.append(out_metric[f'{mode}/dbp_{i}_mae'])
+        out_metric[f'{mode}/sbp_group_mae'] = round(np.mean(group_sbp),3)
+        out_metric[f'{mode}/dbp_group_mae'] = round(np.mean(group_dbp),3)
+
         results['out_metric'] = out_metric 
         os.makedirs(os.path.dirname(self.config.param_test.save_path), exist_ok=True)
         joblib.dump(results, self.config.param_test.save_path)  
+        
         
         return out_metric
