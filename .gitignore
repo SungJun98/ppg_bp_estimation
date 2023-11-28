@@ -5,3 +5,5 @@ qualitative_analysis/
 best_models/
 __pycache__/
 table_figure.pptx
+**/*result*
+**prediction**
