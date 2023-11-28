@@ -29,7 +29,7 @@ def main(args):
     elif config.exp.model_type in ['resnet1d','spectroresnet','mlpbp', 'convtr']:
         solver = solver_s2l(config)
 
-    solver.test()
+    cv_metrics = solver.test()
     time_now = time()
     logger.warning(f"Time Used: {ctime(time_now-time_start)}")
 
@@ -37,6 +37,19 @@ def main(args):
     # output
     # =============================================================================
 
+    if not config.no_result_save:
+        result_path = f"{config.exp.model_type}/{config.method}/test/)"
+        os.makedirs(f'./{result_path}', exist_ok=True)
+
+        filtered_metrics = {k: v for k, v in cv_metrics.items() if not k.startswith('nv')}
+        filtered_metrics["name"] = config.exp.exp_detail
+        filtered_metrics = rename_metric(filtered_metrics, config)
+        
+        save_result(filtered_metrics, path=f'./{result_path}/reseults_detail.csv')
+
+        filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_std')}
+        filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_me')}
+        save_result(filtered_metrics, path=f'./{result_path}/reseults.csv')
 
 #%%
 if __name__=='__main__':

@@ -43,7 +43,7 @@ def get_parser():
     parser.add_argument("--beta", default=0, type=float, help="For Tukey")
     parser.add_argument("--C21", default=0, type=float)
     parser.add_argument("--C22", default=0, type=float)
-    
+
     #### Not use ####
     parser.add_argument("--pl_log", type=bool, default=False, help="Create lr Logs")
     return parser
@@ -105,4 +105,3 @@ def rename_metric(metric, config):
         if config.method == "cdrex_time":
             metric['name'] = "Time_" + metric['name'] 
         return metric
-

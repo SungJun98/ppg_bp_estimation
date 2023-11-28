@@ -576,3 +576,25 @@ def one_group(ppg, y, group, ppg_s, y_s, group_s, idx, lamb,a, b, mask_a, mask_b
     group_s[a:b] = group[idx_]
     return ppg_s, y_s, group_s
 
+def rename_metric(metric, config):
+    if config.method == "erm":
+        return metric
+    else:
+        metric['name'] = f"sbp_beta-{config.sbp_beta}_dbp_beta-{config.dbp_beta}_" + metric['name']
+
+        if config.method in ["drex", "cdrex", "cdrex_time"]:
+            metric['name'] = f"C21-{config.C21}_C22-{config.C22}_beta-{config.beta}_" + metric['name']
+
+        if config.method in ["crex", "cdrex", "cdrex_time"]:
+            metric['name'] = f"C1-{config.C1}_"+ metric['name']
+        
+        if config.method == "cdrex_time":
+            metric['name'] = "Time_" + metric['name'] 
+        return metric
+
+def save_result(metric, path):
+    metric = pd.DataFrame([metric])
+    if not os.path.isfile(path):
+        metric.to_csv(path, header=True, index=False)
+    else:
+        metric.to_csv(path, mode='a', header=False, index=False)

@@ -25,7 +25,7 @@ from pathlib import Path
 import warnings
 
 #########
-from core.utils import remove_outlier, group_annot, reversed_total_group_count, get_divs_per_group
+from core.utils import remove_outlier, group_annot, reversed_total_group_count, get_divs_per_group, rename_metric, save_result
 #########
 
 
@@ -106,6 +106,7 @@ class SolverS2l(Solver):
             fold_errors[f"{mode}_{tar_acrny}_hyper2_label"].append(true_bp[group==3])
             fold_errors[f"{mode}_{tar_acrny}_crisis_label"].append(true_bp[group==4])
             fold_errors[f"{mode}_{tar_acrny}_naive"].append([naive_bp]*len(pred_bp))
+
         fold_errors[f"{mode}_subject_id"].append(loader.dataset.subjects)
         fold_errors[f"{mode}_record_id"].append(loader.dataset.records)
         
@@ -194,6 +195,21 @@ class SolverS2l(Solver):
 
                 metrics = self.get_cv_metrics(fold_errors, dm, model, val_outputs, mode="val")
                 metrics = self.get_cv_metrics(fold_errors, dm, model, test_outputs, mode="test")
+                
+                # Save Fold
+                if not self.config.no_result_save:
+                    result_path = f"{self.config.exp.model_type}/{self.config.method})"
+                    os.makedirs(f'./{result_path}', exist_ok=True)
+
+                    filtered_metrics = {k: v for k, v in metrics.items() if not k.startswith('nv')}
+                    filtered_metrics["name"] = self.config.exp.exp_detail
+                    filtered_metrics = rename_metric(filtered_metrics, self.config)
+                    
+                    save_result(filtered_metrics, path=f'./{result_path}/reseults_fold_{foldIdx}_detail.csv')
+
+                    filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_std')}
+                    filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_me')}
+                    save_result(filtered_metrics, path=f'./{result_path}/reseults_fold_{foldIdx}.csv')
                 logger.info(f"\t {metrics}")
                 mf.log_metrics(metrics)
 
@@ -284,6 +300,19 @@ class SolverS2l(Solver):
             test_outputs = trainer.test(model=model, test_dataloaders=dm.test_dataloader(), verbose=True)
             metrics = self.get_cv_metrics(fold_errors, dm, model, test_outputs, mode="test")
             logger.info(f"\t {metrics}")
+            if not self.config.no_result_save:
+                    result_path = f"{self.config.exp.model_type}/{self.config.method}/test"
+                    os.makedirs(f'./{result_path}', exist_ok=True)
+
+                    filtered_metrics = {k: v for k, v in metrics.items() if not k.startswith('nv')}
+                    filtered_metrics["name"] = self.config.exp.exp_detail
+                    filtered_metrics = rename_metric(filtered_metrics, self.config)
+                    
+                    save_result(filtered_metrics, path=f'./{result_path}/reseults_fold_{foldIdx}_detail.csv')
+
+                    filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_std')}
+                    filtered_metrics = {k: v for k, v in filtered_metrics.items() if not k.endswith('_me')}
+                    save_result(filtered_metrics, path=f'./{result_path}/reseults_fold_{foldIdx}.csv')
 
         #--- compute final metric
         results['fold_errors'] = fold_errors    
@@ -305,4 +334,4 @@ class SolverS2l(Solver):
         os.makedirs(os.path.dirname(self.config.param_test.save_path), exist_ok=True)
         joblib.dump(results, self.config.param_test.save_path)  
         
-        print(out_metric)  
+        return out_metric
