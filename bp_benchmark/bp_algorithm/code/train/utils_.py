@@ -35,6 +35,15 @@ def get_parser():
 
     ## CREx
     parser.add_argument("--C1", type=float, default=0, help="reversed_group_count_penalty")
+
+    ## DREx
+    parser.add_argument("--tukey", action='store_true')
+    parser.add_argument("--beta", default=0, type=float, help="For Tukey")
+    parser.add_argument("--C21", default=0, type=float)
+    parser.add_argument("--C22", default=0, type=float)
+
+
+
     #### Not use ####
     parser.add_argument("--pl_log", type=bool, default=False, help="Create lr Logs")
     return parser

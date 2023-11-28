@@ -46,7 +46,7 @@ def main(args):
     config = merge_config_parser(config, args)
 
     # Hijacking Config
-    config.hijack = {"reversed_total_group_count": []}
+    config.hijack = {"reversed_total_group_count": [], "div_list": {}}
 
     #--- get the solver
     if config.exp.model_type in ['unet1d', 'ppgiabp', 'vnet']:

@@ -54,6 +54,10 @@ class ConvTransformer(Regressor):
                 per_group += self.config.C1*torch.sqrt(reversed.unsqueeze(0))
                 
             if self.config.method in ["drex", "cdrex", "cdrex_time"]:
+                coeff_tensor = torch.tensor([self.config.C21, self.config.C22]).unsqueeze(1)
+                div_list = torch.tensor([self.config.hijack["div_list"].sbp,
+                                        self.config.hijack["div_list"].dbp])
+                per_group += coeff_tensor*div_list
                 pass
             
             variance = torch.var(per_group[:, mask], dim=1) # [2,]

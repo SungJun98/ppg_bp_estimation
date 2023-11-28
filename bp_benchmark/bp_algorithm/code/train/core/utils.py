@@ -438,3 +438,62 @@ def reversed_total_group_count(df):
     group_map = group_type==group
     group_count = group_map.sum(1)
     return (total/group_count).tolist()
+
+def get_divs_per_group(df, config):
+    from torch.distributions import normal, kl_divergence
+
+    group = torch.tensor(np.array(df['group']))
+    sbp = torch.tensor(np.array(df['SP']))
+    sbp = glob_mm(sbp, config, type="SP") # [0,1]
+    dbp = torch.tensor(np.array(df['DP']))
+    dbp = glob_mm(dbp, config, type="DP") # [0,1]
+    
+    if config.tukey:
+        if config.beta != 0:
+            sbp = torch.pow(sbp, config.beta)
+            dbp = torch.pow(dbp, config.beta)
+        elif config.beta == 0:
+            sbp = torch.log(sbp)
+            dbp = torch.log(dbp)
+        else:
+            sbp = (-1) * torch.pow(sbp, confg.beta)
+            dbp = (-1) * torch.pow(dbp, config.beta)
+
+    group_type = torch.arange(5).unsqueeze(1).float()
+    group_map = (group_type==group).float()
+    
+    sbp_mean = sbp.mean(0) ; dbp_mean = dbp.mean(0)
+    sbp_var = torch.var(sbp) ; dbp_var = torch.var(dbp)
+    
+    sbp_tot_dist = normal.Normal(sbp_mean, sbp_var)
+    dbp_tot_dist = normal.Normal(dbp_mean, dbp_var)
+
+    # checking times
+    sbp_div_list = [] ; dbp_div_list = []
+    for i in range(len(group_type)): # Hypo, Normal, Prehyper, hyper2, crisis
+        idx = (group_map[i].nonzero(as_tuple=True)[0])
+        group_sbp = sbp[idx]; group_dbp = dbp[idx]
+        
+        group_sbp_mean = group_sbp.mean(0)
+        group_sbp_var = torch.var(group_sbp)
+        sbp_group_dist = normal.Normal(group_sbp_mean, group_sbp_var)
+        sbp_kld = (kl_divergence(sbp_group_dist, sbp_tot_dist) + kl_divergence(sbp_tot_dist, sbp_group_dist)) / 2
+
+        sbp_div_list.append(sbp_kld)
+
+        group_dbp_mean = group_dbp.mean(0)
+        group_dbp_var = torch.var(group_dbp)
+        dbp_group_dist = normal.Normal(group_dbp_mean, group_dbp_var)
+        dbp_kld = (kl_divergence(dbp_group_dist, dbp_tot_dist) + kl_divergence(dbp_tot_dist, dbp_group_dist)) / 2
+        dbp_div_list.append(dbp_kld)
+
+    # Scaling
+    sbp_div_list = [div/sum(sbp_div_list) for div in sbp_div_list]
+    dbp_div_list = [div/sum(dbp_div_list) for div in dbp_div_list]
+
+    div_list = {sbp: sbp_div_list, dbp: dbp_div_list}
+    return div_list
+
+
+
+

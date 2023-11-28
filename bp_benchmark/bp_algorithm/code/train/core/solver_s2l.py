@@ -25,7 +25,7 @@ from pathlib import Path
 import warnings
 
 #########
-from core.utils import remove_outlier, group_annot, reversed_total_group_count
+from core.utils import remove_outlier, group_annot, reversed_total_group_count, get_divs_per_group
 #########
 
 
@@ -152,9 +152,11 @@ class SolverS2l(Solver):
         for foldIdx, (folds_train, folds_val, folds_test) in enumerate(get_nested_fold_idx(self.config.exp.N_fold)):
             if (self.config.exp.cv=='HOO') and (foldIdx==1):  break
             train_df = pd.concat(np.array(all_split_df)[folds_train])
-            self.config.hijack["reversed_total_group_count"] = reversed_total_group_count(train_df)
             val_df = pd.concat(np.array(all_split_df)[folds_val])
             test_df = pd.concat(np.array(all_split_df)[folds_test])
+
+            self.config.hijack["reversed_total_group_count"] = reversed_total_group_count(train_df)
+            self.config.hijack["div_list"] = get_divs_per_group(train_df, self.config)
             
             dm.setup_kfold(train_df, val_df, test_df)
 
