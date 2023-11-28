@@ -57,8 +57,7 @@ class ConvTransformer(Regressor):
                 coeff_tensor = torch.tensor([self.config.C21, self.config.C22]).unsqueeze(1)
                 div_list = torch.tensor([self.config.hijack["div_list"].sbp,
                                         self.config.hijack["div_list"].dbp])
-                per_group += coeff_tensor*div_list
-                pass
+                per_group += (coeff_tensor*div_list).to(per_group.device)
             
             variance = torch.var(per_group[:, mask], dim=1) # [2,]
             loss = per_group_avg.sum() + self.config.sbp_beta * variance[0] + self.config.dbp_beta * variance[1]
