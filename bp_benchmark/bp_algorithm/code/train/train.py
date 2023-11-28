@@ -46,7 +46,7 @@ def main(args):
     config = merge_config_parser(config, args)
 
     # Hijacking Config
-    config.hijack = {"reversed_total_group_count": [], "div_list": {}}
+    config.hijack = {"reversed_total_group_count": [], "div_list": {"sbp":[], "dbp":[]}}
 
     #--- get the solver
     if config.exp.model_type in ['unet1d', 'ppgiabp', 'vnet']:
@@ -72,7 +72,8 @@ def main(args):
     logger.warning(f"Time Used: {ctime(time_now-time_start)}")
     
     if not config.no_result_save:
-        result_path = f"{config.exp.model_type}/{config.method}"
+        result_path = f"{config.exp.model_type}/{config.method})"
+        os.makedirs(f'./{result_path}', exist_ok=True)
 
         filtered_metrics = {k: v for k, v in cv_metrics.items() if not k.startswith('nv')}
         filtered_metrics["name"] = config.exp.exp_detail

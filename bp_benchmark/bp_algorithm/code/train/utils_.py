@@ -26,6 +26,8 @@ def get_parser():
     parser.add_argument("--dropout", type=int, default=None)
     parser.add_argument("--num_layer", type=int, default=None)
     parser.add_argument("--d_output", type=int, default=None)
+
+    ## Manage
     parser.add_argument("--method", type=str, default="erm", choices=["erm", "vrex", "crex", "drex", "cdrex", "cdrex_time"])
     parser.add_argument("--no_result_save", action="store_true")
 
@@ -41,9 +43,7 @@ def get_parser():
     parser.add_argument("--beta", default=0, type=float, help="For Tukey")
     parser.add_argument("--C21", default=0, type=float)
     parser.add_argument("--C22", default=0, type=float)
-
     
-
     #### Not use ####
     parser.add_argument("--pl_log", type=bool, default=False, help="Create lr Logs")
     return parser
@@ -95,4 +95,14 @@ def rename_metric(metric, config):
         return metric
     else:
         metric['name'] = f"sbp_beta-{config.sbp_beta}_dbp_beta-{config.dbp_beta}_" + metric['name']
+
+        if config.method in ["drex", "cdrex", "cdrex_time"]:
+            metric['name'] = f"C21-{config.C21}_C22-{config.C22}_beta-{config.beta}_" + metric['name']
+
+        if config.method in ["crex", "cdrex", "cdrex_time"]:
+            metric['name'] = f"C1-{config.C1}_"+ metric['name']
+        
+        if config.method == "cdrex_time":
+            metric['name'] = "Time_" + metric['name'] 
+        return metric
 

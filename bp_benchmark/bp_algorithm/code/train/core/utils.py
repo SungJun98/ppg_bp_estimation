@@ -12,6 +12,8 @@ from pyampd.ampd import find_peaks
 from mlflow.tracking import MlflowClient
 from mlflow.utils.autologging_utils.safety import try_mlflow_log
 import scipy
+import random
+import copy
     
 def str2bool(v):
     if isinstance(v, bool): return v
@@ -468,7 +470,6 @@ def get_divs_per_group(df, config):
     sbp_tot_dist = normal.Normal(sbp_mean, sbp_var)
     dbp_tot_dist = normal.Normal(dbp_mean, dbp_var)
 
-    # checking times
     sbp_div_list = [] ; dbp_div_list = []
     for i in range(len(group_type)): # Hypo, Normal, Prehyper, hyper2, crisis
         idx = (group_map[i].nonzero(as_tuple=True)[0])
@@ -476,24 +477,102 @@ def get_divs_per_group(df, config):
         
         group_sbp_mean = group_sbp.mean(0)
         group_sbp_var = torch.var(group_sbp)
+        if group_sbp_var == 0:
+            group_sbp_var = 1e-5
         sbp_group_dist = normal.Normal(group_sbp_mean, group_sbp_var)
         sbp_kld = (kl_divergence(sbp_group_dist, sbp_tot_dist) + kl_divergence(sbp_tot_dist, sbp_group_dist)) / 2
 
-        sbp_div_list.append(sbp_kld)
+        sbp_div_list.append(sbp_kld.item())
 
         group_dbp_mean = group_dbp.mean(0)
         group_dbp_var = torch.var(group_dbp)
+        if group_dbp_var == 0:
+            group_dbp_var = 1e-5
         dbp_group_dist = normal.Normal(group_dbp_mean, group_dbp_var)
         dbp_kld = (kl_divergence(dbp_group_dist, dbp_tot_dist) + kl_divergence(dbp_tot_dist, dbp_group_dist)) / 2
-        dbp_div_list.append(dbp_kld)
+        dbp_div_list.append(dbp_kld.item())
 
     # Scaling
     sbp_div_list = [div/sum(sbp_div_list) for div in sbp_div_list]
     dbp_div_list = [div/sum(dbp_div_list) for div in dbp_div_list]
 
-    div_list = {sbp: sbp_div_list, dbp: dbp_div_list}
+    div_list = {"sbp": sbp_div_list, "dbp": dbp_div_list}
     return div_list
 
+def group_time_cutmix_all(ppg, y, group):
+      
+    # Creat Copy
+    ppg_s = torch.zeros_like(ppg)     # bs, 1, length
+    y_s = torch.zeros_like(y)         # bs, 2
+    group_s = torch.zeros_like(group)   # bs
+    sig_len = ppg_s.shape[-1]         #
+
+    lamb = torch.rand(len(ppg)).to(ppg_s.device)       # bs
+    lamb_f = torch.round(sig_len*lamb).int() 
+
+    # Creat Mask
+    mask_a = []
+    for i in lamb_f :
+        mask_a.append((i >= torch.range(1,sig_len).to(ppg_s.device)).float())
+    mask_a = torch.stack(mask_a).unsqueeze(1) # bs, 1, length
+    mask_b = 1-mask_a
+
+    # Group Inform
+    group_type = torch.arange(5).unsqueeze(1).float().to(group.device)
+    group_map = (group_type == group).float()
+    idx_0 = (group_map[0].nonzero(as_tuple=True))[0]
+    idx_1 = (group_map[1].nonzero(as_tuple=True))[0]
+    idx_2 = (group_map[2].nonzero(as_tuple=True))[0]
+    idx_3 = (group_map[3].nonzero(as_tuple=True))[0]
+    idx_4 = (group_map[4].nonzero(as_tuple=True))[0]
+
+    len_0 = len(idx_0)
+    len_1 = len(idx_1)
+    len_2 = len(idx_2)
+    len_3 = len(idx_3)
+    len_4 = len(idx_4)
 
 
+
+    pg_s, y_s, group_s = one_group(
+                                    ppg, y, group, ppg_s, y_s, group_s, 
+                                    idx_0, lamb,0, len_0, mask_a, mask_b
+                                                    )
+    pg_s, y_s, group_s = one_group(
+                                   ppg, y, group, ppg_s, y_s, group_s, 
+                                   idx_1, lamb,len_0, len_0+len_1, mask_a, mask_b
+                                                    )
+    pg_s, y_s, group_s = one_group(
+                                   ppg, y, group, ppg_s, y_s, group_s, 
+                                   idx_2, lamb, len_0+len_1, len_0+len_1+len_2, mask_a, mask_b
+                                                    )
+    pg_s, y_s, group_s = one_group(
+                                   ppg, y, group, ppg_s, y_s, group_s, 
+                                   idx_3, lamb, len_0+len_1+len_2, len_0+len_1+len_2+len_3, mask_a, mask_b
+                                                    )
+    pg_s, y_s, group_s = one_group(
+                                    ppg, y, group, ppg_s, y_s, group_s, 
+                                    idx_4, lamb,len_0+len_1+len_2+len_3, len_0+len_1+len_2+len_3+len_4, mask_a, mask_b
+                                                    )
+
+
+    mixed_ppg = torch.cat((ppg, ppg_s),dim=0)
+    mixed_y = torch.cat((y, y_s),dim=0)
+    mixed_group = torch.cat((group, group_s),dim=0)
+
+    return mixed_ppg, mixed_y, mixed_group
+
+def one_group(ppg, y, group, ppg_s, y_s, group_s, idx, lamb,a, b, mask_a, mask_b):
+    idx_ = torch.randperm(len(idx))
+    idx_ = idx[idx_]
+
+    target_a = ppg[idx] 
+    target_b = ppg[idx_] 
+
+    y_mixed = lamb[a:b].unsqueeze(1)*y[idx] + (1-lamb[a:b].unsqueeze(1))*y[idx_]
+
+    ppg_s[a:b] =  target_a*mask_a[a:b] + target_b*mask_b[a:b]   
+    y_s[a:b] = y_mixed
+    group_s[a:b] = group[idx_]
+    return ppg_s, y_s, group_s
 

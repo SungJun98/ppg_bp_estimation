@@ -34,16 +34,20 @@ class ConvTransformer(Regressor):
                                 param_model.d_model, param_model.dropout,
                                 param_model.num_layer, param_model.d_output, param_model.batch_first)
                                 
-    def _shared_step(self, batch):
+    def _shared_step(self, batch, mode):
         x_ppg, y, x_abp, peakmask, vlymask, group = batch
+        ppg = x_ppg['ppg']
+        if self.config.method == "cdrex_time" and mode == "train":
+            ppg, y, group = group_time_cutmix_all(ppg, y, group)
         #x_ppg, y, x_abp, peakmask, vlymask = batch
-        pred = self.model(x_ppg['ppg'])
+        pred = self.model(ppg)
         losses = self.criterion(pred, y)
         group = group.unsqueeze(1)
         return losses, pred, x_abp, y, group
 
     def training_step(self, batch, batch_idx):
-        losses, pred_bp, t_abp, label, group = self._shared_step(batch)
+        mode = "train"
+        losses, pred_bp, t_abp, label, group = self._shared_step(batch, mode)
         if self.config.method != "erm":
             per_group, group_count = per_group_loss(losses, group) #[2x5] [sbp/dbp, BP_group]
             mask = (group_count != 0) # To avoid 0 bp_group
@@ -55,14 +59,16 @@ class ConvTransformer(Regressor):
                 
             if self.config.method in ["drex", "cdrex", "cdrex_time"]:
                 coeff_tensor = torch.tensor([self.config.C21, self.config.C22]).unsqueeze(1)
-                div_list = torch.tensor([self.config.hijack["div_list"].sbp,
-                                        self.config.hijack["div_list"].dbp])
+                div_list = torch.tensor([self.config.hijack["div_list"]["sbp"],
+                                        self.config.hijack["div_list"]["dbp"]])
                 per_group += (coeff_tensor*div_list).to(per_group.device)
             
             variance = torch.var(per_group[:, mask], dim=1) # [2,]
             loss = per_group_avg.sum() + self.config.sbp_beta * variance[0] + self.config.dbp_beta * variance[1]
             if self.config.sbp_beta + self.config.dbp_beta > 1:
                 loss /= (self.config.sbp_beta + self.config.dbp_beta)
+
+            print(loss)
 
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
@@ -74,7 +80,8 @@ class ConvTransformer(Regressor):
         self._log_metric(metrics, mode="train")
 
     def validation_step(self, batch, batch_idx):
-        losses, pred_bp, t_abp, label, group = self._shared_step(batch)
+        mode = "val"
+        losses, pred_bp, t_abp, label, group = self._shared_step(batch, mode)
         loss = losses.mean()
         self.log('val_loss', loss, prog_bar=True, on_epoch=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
@@ -87,7 +94,8 @@ class ConvTransformer(Regressor):
         return val_step_end_out
 
     def test_step(self, batch, batch_idx):
-        losses, pred_bp, t_abp, label, group = self._shared_step(batch)
+        mode = "test"
+        losses, pred_bp, t_abp, label, group = self._shared_step(batch,mode)
         loss = losses.mean()
         self.log('test_loss', loss, prog_bar=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
