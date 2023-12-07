@@ -36,7 +36,7 @@ docker run --gpus=all --shm-size=65g --name=[YOUR_CONTAINER_NAME] -p [YOUR_OWN_P
 #-- However, there are some conflict. (I don't know why)
 #-- For maching the version of package, install or update some packages inside your container
 pip install --upgrade requests
-pip install --upgrade numbpy 1.20.0
+pip install --upgrade numpy==1.20.0
 pip install --upgrade hydra-optuna-sweeper==1.2.0
 
 #-- Environment Setting is finished. To test it:
@@ -48,7 +48,7 @@ python train.py --config_file core/config/dl/resnet/resnet_ppgbp.yaml
 exit
 
 #-- If you want to restart container which you exit before with terminating
-docker start -ai [YOUR_CONTAINER_NAME]
+docker start -ai [YOUR_CONTAINER_NAME] 
 
 #-- If you want to exit container without terminating it 
 ctrl P
