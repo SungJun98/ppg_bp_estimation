@@ -23,7 +23,7 @@ def get_parser():
     parser.add_argument("--num_filters", type=int, default=None)
     parser.add_argument("--num_heads", type=int, default=None)
     parser.add_argument("--d_model", type=int, default=None)
-    parser.add_argument("--dropout", type=int, default=None)
+    parser.add_argument("--dropout", type=float, default=None)
     parser.add_argument("--num_layer", type=int, default=None)
     parser.add_argument("--d_output", type=int, default=None)
 

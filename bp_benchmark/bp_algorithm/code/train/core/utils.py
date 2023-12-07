@@ -458,7 +458,7 @@ def get_divs_per_group(df, config):
             sbp = torch.log(sbp)
             dbp = torch.log(dbp)
         else:
-            sbp = (-1) * torch.pow(sbp, confg.beta)
+            sbp = (-1) * torch.pow(sbp, config.beta)
             dbp = (-1) * torch.pow(dbp, config.beta)
 
     group_type = torch.arange(5).unsqueeze(1).float()
@@ -475,23 +475,25 @@ def get_divs_per_group(df, config):
         idx = (group_map[i].nonzero(as_tuple=True)[0])
         group_sbp = sbp[idx]; group_dbp = dbp[idx]
         
-        group_sbp_mean = group_sbp.mean(0)
-        group_sbp_var = torch.var(group_sbp)
-        if group_sbp_var == 0:
-            group_sbp_var = 1e-5
-        sbp_group_dist = normal.Normal(group_sbp_mean, group_sbp_var)
-        sbp_kld = (kl_divergence(sbp_group_dist, sbp_tot_dist) + kl_divergence(sbp_tot_dist, sbp_group_dist)) / 2
+        if len(idx) != 0:
+            group_sbp_mean = group_sbp.mean(0)
+            group_sbp_var = torch.var(group_sbp)
+            if group_sbp_var == 0:
+                group_sbp_var = 1e-5
+            sbp_group_dist = normal.Normal(group_sbp_mean, group_sbp_var)
+            sbp_kld = (kl_divergence(sbp_group_dist, sbp_tot_dist) + kl_divergence(sbp_tot_dist, sbp_group_dist)) / 2
+            sbp_div_list.append(sbp_kld.item())
 
-        sbp_div_list.append(sbp_kld.item())
-
-        group_dbp_mean = group_dbp.mean(0)
-        group_dbp_var = torch.var(group_dbp)
-        if group_dbp_var == 0:
-            group_dbp_var = 1e-5
-        dbp_group_dist = normal.Normal(group_dbp_mean, group_dbp_var)
-        dbp_kld = (kl_divergence(dbp_group_dist, dbp_tot_dist) + kl_divergence(dbp_tot_dist, dbp_group_dist)) / 2
-        dbp_div_list.append(dbp_kld.item())
-
+            group_dbp_mean = group_dbp.mean(0)
+            group_dbp_var = torch.var(group_dbp)
+            if group_dbp_var == 0:
+                group_dbp_var = 1e-5
+            dbp_group_dist = normal.Normal(group_dbp_mean, group_dbp_var)
+            dbp_kld = (kl_divergence(dbp_group_dist, dbp_tot_dist) + kl_divergence(dbp_tot_dist, dbp_group_dist)) / 2
+            dbp_div_list.append(dbp_kld.item())
+        else:
+            sbp_div_list.append(0.0)
+            dbp_div_list.append(0.0)
     # Scaling
     sbp_div_list = [div/sum(sbp_div_list) for div in sbp_div_list]
     dbp_div_list = [div/sum(dbp_div_list) for div in dbp_div_list]
@@ -533,27 +535,26 @@ def group_time_cutmix_all(ppg, y, group):
     len_4 = len(idx_4)
 
 
-
-    pg_s, y_s, group_s = one_group(
+    ppg_s, y_s, group_s = one_group(
                                     ppg, y, group, ppg_s, y_s, group_s, 
                                     idx_0, lamb,0, len_0, mask_a, mask_b
                                                     )
-    pg_s, y_s, group_s = one_group(
-                                   ppg, y, group, ppg_s, y_s, group_s, 
-                                   idx_1, lamb,len_0, len_0+len_1, mask_a, mask_b
-                                                    )
-    pg_s, y_s, group_s = one_group(
-                                   ppg, y, group, ppg_s, y_s, group_s, 
-                                   idx_2, lamb, len_0+len_1, len_0+len_1+len_2, mask_a, mask_b
-                                                    )
-    pg_s, y_s, group_s = one_group(
-                                   ppg, y, group, ppg_s, y_s, group_s, 
-                                   idx_3, lamb, len_0+len_1+len_2, len_0+len_1+len_2+len_3, mask_a, mask_b
-                                                    )
-    pg_s, y_s, group_s = one_group(
-                                    ppg, y, group, ppg_s, y_s, group_s, 
-                                    idx_4, lamb,len_0+len_1+len_2+len_3, len_0+len_1+len_2+len_3+len_4, mask_a, mask_b
-                                                    )
+    ppg_s, y_s, group_s = one_group(
+                                ppg, y, group, ppg_s, y_s, group_s, 
+                                idx_1, lamb,len_0, len_0+len_1, mask_a, mask_b
+                                                )
+    ppg_s, y_s, group_s = one_group(
+                                ppg, y, group, ppg_s, y_s, group_s, 
+                                idx_2, lamb, len_0+len_1, len_0+len_1+len_2, mask_a, mask_b
+                                                )
+    ppg_s, y_s, group_s = one_group(
+                                ppg, y, group, ppg_s, y_s, group_s, 
+                                idx_3, lamb, len_0+len_1+len_2, len_0+len_1+len_2+len_3, mask_a, mask_b
+                                                )
+    ppg_s, y_s, group_s = one_group(
+                                ppg, y, group, ppg_s, y_s, group_s, 
+                                idx_4, lamb,len_0+len_1+len_2+len_3, len_0+len_1+len_2+len_3+len_4, mask_a, mask_b
+                                                )
 
 
     mixed_ppg = torch.cat((ppg, ppg_s),dim=0)

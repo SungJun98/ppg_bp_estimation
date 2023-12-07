@@ -36,8 +36,8 @@ param_model:
   batch_size: 256
   feature_size: 1
   d_input: 64
-  num_filters: 8
-  num_heads: 4
+  num_filters: 12
+  num_heads: 2
   d_model: 96
   dropout: 0.1
   num_layer: 2
