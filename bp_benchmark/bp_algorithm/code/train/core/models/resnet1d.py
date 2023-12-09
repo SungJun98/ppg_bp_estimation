@@ -5,39 +5,72 @@ import torch.nn.functional as F
 from .base_pl import Regressor
 from .resnet import MyConv1dPadSame, MyMaxPool1dPadSame, BasicBlock
 import coloredlogs, logging
+
+####
+from core.utils import *
+####
+
 coloredlogs.install()
 logger = logging.getLogger(__name__)  
 
 class Resnet1d(Regressor):
-    def __init__(self, param_model, random_state=0):
+    def __init__(self, param_model, config, random_state=0):
         super(Resnet1d, self).__init__(param_model, random_state)
-
+        self.config = config
         self.model = ResNet1D(param_model.in_channel, param_model.base_filters,
                                 param_model.first_kernel_size, param_model.kernel_size, 
                                 param_model.stride, param_model.groups, param_model.n_block,
                                 param_model.output_size, param_model.is_se, param_model.se_ch_low)
-    def _shared_step(self, batch):
+    def _shared_step(self, batch, mode):
         x_ppg, y, x_abp, peakmask, vlymask, group = batch
-        #x_ppg, y, x_abp, peakmask, vlymask = batch
-        pred = self.model(x_ppg)
+        ppg = x_ppg['ppg']
+        if self.config.method == "cdrex_time" and mode == "train":
+            ppg, y, group = group_time_cutmix_all(ppg, y, group)
+        pred = self.model(ppg)
         losses = self.criterion(pred, y)
         group = group.unsqueeze(1)
         return losses, pred, x_abp, y, group
 
     def training_step(self, batch, batch_idx):
-        losses, pred_bp, t_abp, label, group = self._shared_step(batch)
-        loss = losses.mean()
+        mode = "train"
+        losses, pred_bp, t_abp, label, group = self._shared_step(batch, mode)
+        if self.config.method != "erm":
+            per_group, group_count = per_group_loss(losses, group) #[2x5] [sbp/dbp, BP_group]
+            mask = (group_count != 0) # To avoid 0 bp_group
+            per_group_avg = per_group.sum(1)/(mask.sum())
+
+            if self.config.method in ["crex", "cdrex", "cdrex_time"]:
+                reversed = torch.tensor(self.config.hijack['reversed_total_group_count']).to(losses.device)
+                per_group += self.config.C1*torch.sqrt(reversed.unsqueeze(0))
+                
+            if self.config.method in ["drex", "cdrex", "cdrex_time"]:
+                coeff_tensor = torch.tensor([self.config.C21, self.config.C22]).unsqueeze(1)
+                div_list = torch.tensor([self.config.hijack["div_list"]["sbp"],
+                                        self.config.hijack["div_list"]["dbp"]])
+                per_group += (coeff_tensor*div_list).to(per_group.device)
+            
+            variance = torch.var(per_group[:, mask], dim=1) # [2,]
+            loss = per_group_avg.sum() + self.config.sbp_beta * variance[0] + self.config.dbp_beta * variance[1]
+            if self.config.sbp_beta + self.config.dbp_beta > 1:
+                loss /= (self.config.sbp_beta + self.config.dbp_beta)
+        else:
+            loss = losses.mean()
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
     
     def training_epoch_end(self, train_step_outputs):
         logit = torch.cat([v["pred_bp"] for v in train_step_outputs], dim=0)
         label = torch.cat([v["true_bp"] for v in train_step_outputs], dim=0)
-        metrics = self._cal_metric(logit.detach(), label.detach())
+        if self.config.group_avg:
+            group = torch.cat([v["group"].squeeze(1) for v in train_step_outputs], dim=0)
+            metrics = self._cal_metric(logit.detach(), label.detach(), group)
+        else:
+            metrics = self._cal_metric(logit.detach(), label.detach())
         self._log_metric(metrics, mode="train")
 
     def validation_step(self, batch, batch_idx):
-        losses, pred_bp, t_abp, label, group = self._shared_step(batch)
+        mode = "val"
+        losses, pred_bp, t_abp, label, group = self._shared_step(batch, mode)
         loss = losses.mean()
         self.log('val_loss', loss, prog_bar=True, on_epoch=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
@@ -45,12 +78,18 @@ class Resnet1d(Regressor):
     def validation_epoch_end(self, val_step_end_out):
         logit = torch.cat([v["pred_bp"] for v in val_step_end_out], dim=0)
         label = torch.cat([v["true_bp"] for v in val_step_end_out], dim=0)
-        metrics = self._cal_metric(logit.detach(), label.detach())
+        if self.config.group_avg:
+            group = torch.cat([v["group"].squeeze(1) for v in val_step_end_out], dim=0)
+            metrics = self._cal_metric(logit.detach(), label.detach(), group)
+        else:
+            metrics = self._cal_metric(logit.detach(), label.detach())
+        
         self._log_metric(metrics, mode="val")
         return val_step_end_out
 
     def test_step(self, batch, batch_idx):
-        losses, pred_bp, t_abp, label, group = self._shared_step(batch)
+        mode = "test"
+        losses, pred_bp, t_abp, label, group = self._shared_step(batch,mode)
         loss = losses.mean()
         self.log('test_loss', loss, prog_bar=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
@@ -58,9 +97,45 @@ class Resnet1d(Regressor):
     def test_epoch_end(self, test_step_end_out):
         logit = torch.cat([v["pred_bp"] for v in test_step_end_out], dim=0)
         label = torch.cat([v["true_bp"] for v in test_step_end_out], dim=0)
-        metrics = self._cal_metric(logit.detach(), label.detach())
+        if self.config.group_avg:
+            group = torch.cat([v["group"].squeeze(1) for v in test_step_end_out], dim=0)
+            metrics = self._cal_metric(logit.detach(), label.detach(), group)
+        else:
+            metrics = self._cal_metric(logit.detach(), label.detach())
         self._log_metric(metrics, mode="test")
         return test_step_end_out
+
+    def grouping(self, losses, group):
+        group_type = torch.arange(0,5).cuda()
+        group_map = (group_type.view(-1,1)==group).float()
+        group_count = group_map.sum(1)
+        group_loss_map = losses.squeeze(0) * group_map.unsqueeze(2) # (4,bs,2)
+        group_loss = group_loss_map.sum(1)                          # (4,2)
+        
+        # Average only across the existing group
+        mask = group_count != 0
+        avg_per_group = torch.zeros_like(group_loss)
+        avg_per_group[mask, :] = group_loss[mask, :] / group_count[mask].unsqueeze(1)
+        exist_group = mask.sum()
+        avg_group = avg_per_group.sum(0)/exist_group
+        loss = avg_group.sum()/2
+        return loss
+
+    def _cal_metric(self, logit: torch.tensor, label: torch.tensor, group=None):
+        prev_mse = (logit-label)**2
+        prev_mae = torch.abs(logit-label)
+        prev_me = logit-label
+        mse = torch.mean(prev_mse)
+        mae = torch.mean(prev_mae)
+        me = torch.mean(prev_me)
+        std = torch.std(torch.mean(logit-label, dim=1))
+        if self.config.group_avg:
+            group_mse = self.grouping(prev_mse, group)
+            group_mae = self.grouping(prev_mae, group)
+            group_me = self.grouping(prev_me, group)
+            return {"mse":mse, "mae":mae, "std": std, "me": me, "group_mse":group_mse, "group_mae":group_mae, "group_me":group_me} 
+        else:
+            return {"mse":mse, "mae":mae, "std": std, "me": me} 
 
 #%%
 
@@ -159,7 +234,7 @@ class ResNet1D(nn.Module):
 
     # def forward(self, x):
     def forward(self, x):
-        x = x['ppg']
+        # x = x['ppg']
         assert len(x.shape) == 3
 
         # skip batch norm if batchsize<4:

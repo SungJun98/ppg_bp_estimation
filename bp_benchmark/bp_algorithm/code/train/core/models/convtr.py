@@ -67,7 +67,8 @@ class ConvTransformer(Regressor):
             loss = per_group_avg.sum() + self.config.sbp_beta * variance[0] + self.config.dbp_beta * variance[1]
             if self.config.sbp_beta + self.config.dbp_beta > 1:
                 loss /= (self.config.sbp_beta + self.config.dbp_beta)
-
+        else:
+            loss = losses.mean()
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
     
