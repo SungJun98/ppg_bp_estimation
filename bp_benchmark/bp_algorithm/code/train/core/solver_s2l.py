@@ -40,11 +40,11 @@ class SolverS2l(Solver):
         model = None
         if not ckpt_path_abs:
             if self.config.exp.model_type == "resnet1d":
-                model = Resnet1d(self.config.param_model, random_state=self.config.exp.random_state)
+                model = Resnet1d(self.config.param_model, config=self.config, random_state=self.config.exp.random_state)
             elif self.config.exp.model_type == "spectroresnet":
-                model = SpectroResnet(self.config.param_model, random_state=self.config.exp.random_state)
+                model = SpectroResnet(self.config.param_model, config=self.config, random_state=self.config.exp.random_state)
             elif self.config.exp.model_type == "mlpbp":
-                model = MLPBP(self.config.param_model, random_state=self.config.exp.random_state)
+                model = MLPBP(self.config.param_model, config=self.config, random_state=self.config.exp.random_state)
             elif self.config.exp.model_type == "convtr":
                 model = ConvTransformer(self.config.param_model, config=self.config, random_state=self.config.exp.random_state)
             else:
@@ -52,11 +52,11 @@ class SolverS2l(Solver):
             return model
         else:
             if self.config.exp.model_type == "resnet1d":
-                model = Resnet1d.load_from_checkpoint(ckpt_path_abs)
+                model = Resnet1d.load_from_checkpoint(ckpt_path_abs, config=self.config)
             elif self.config.exp.model_type == "spectroresnet":
-                model = SpectroResnet.load_from_checkpoint(ckpt_path_abs)
+                model = SpectroResnet.load_from_checkpoint(ckpt_path_abs, config=self.config)
             elif self.config.exp.model_type == "mlpbp":
-                model = MLPBP.load_from_checkpoint(ckpt_path_abs)
+                model = MLPBP.load_from_checkpoint(ckpt_path_abs, config=self.config)
             elif self.config.exp.model_type == "convtr":
                 model = ConvTransformer.load_from_checkpoint(ckpt_path_abs, config=self.config)
             else:

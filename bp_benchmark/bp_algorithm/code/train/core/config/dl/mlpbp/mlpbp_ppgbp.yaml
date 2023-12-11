@@ -8,6 +8,7 @@ exp:
   data_name: ppgbp
   model_type: mlpbp
   exp_name: ${exp.data_name}-${exp.model_type}
+  exp_detail: lr-${param_model.lr}_wd-${param_model.wd}_bs-${param_model.batch_size}_max_epochs-${param_trainer.max_epochs}_seed-${param_model.seed}
   subject_dict: ../../datasets/splitted/${exp.data_name}_dataset/signal_fold
   loader: waveform
   cv: cv
@@ -44,6 +45,8 @@ param_model:
   token_dim: 512
   channel_dim: 512 
   dropout: 0.2
+  wd: 0
+  seed: 0
 logger:
   param_ckpt:
     monitor: ${objective.type}

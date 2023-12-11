@@ -64,11 +64,11 @@ def merge_config_parser(config,args):
         merged_config.param_model.wd = args.seed
     if args.group_avg:
         merged_config.objective.type = "val_group_mse"
+    if args.batch_size:
+        merged_config.param_model.batch_size = args.batch_size
 
     # Manual Setting for Sweep
     if merged_config.exp.model_type == "convtr":
-        if args.batch_size:
-            merged_config.param_model.batch_size = args.batch_size
         if args.feature_size:
             merged_config.param_model.feature_size = args.feature_size
         if args.d_input:

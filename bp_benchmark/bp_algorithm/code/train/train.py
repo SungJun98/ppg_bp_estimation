@@ -40,11 +40,9 @@ def main(args):
 
     time_start = time()
 
-
     # Set Config
     config = OmegaConf.load(args.config_file)
     config = merge_config_parser(config, args)
-
     # Hijacking Config
     config.hijack = {"reversed_total_group_count": [], "div_list": {"sbp":[], "dbp":[]}}
 
