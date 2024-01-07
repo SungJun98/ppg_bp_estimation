@@ -30,7 +30,7 @@ cd ../bp_algorithm
 #-- [YOUR_OWN_PORT_NAME] is your own. But I'm using port range 9200-9205.
 #-- Therefore, I recommend you to use the other port range like 9210-9215.
 #-- Authorization of data and models already have been opened by taero
-docker run --gpus=all --shm-size=65g --name=[YOUR_CONTAINER_NAME] -p [YOUR_OWN_PORT_RANGE]:9180-9185 -it -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/bp_algorithm/:/bp_benchmark -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/datasets/splitted:/bp_benchmark/datasets/splitted -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/models:/bp_benchmark/models bp_etri2022 bash
+docker run --gpus=all --shm-size=65g --name=[YOUR_CONTAINER_NAME] -p [YOUR_OWN_PORT_RANGE]:9180-9185 -itd -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/bp_algorithm/:/bp_benchmark -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/datasets/splitted:/bp_benchmark/datasets/splitted -v [YOUR_ROOT]/ppg_bp_estimation/bp_benchmark/models:/bp_benchmark/models bp_etri2022 bash
 
 #-- Then, docker container is started. 
 #-- However, there are some conflict. (I don't know why)
@@ -49,6 +49,7 @@ exit
 
 #-- If you want to restart container which you exit before with terminating
 docker start -ai [YOUR_CONTAINER_NAME] 
+docker exec -it [YOUR_CONTAINER_NAME] /bin/bash
 
 #-- If you want to exit container without terminating it 
 ctrl P

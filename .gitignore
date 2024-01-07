@@ -7,3 +7,8 @@ __pycache__/
 table_figure.pptx
 **/*result*
 **prediction**
+bp_bechmark/datasets
+bp_bechmark/models
+bp_benchmark/bp_algorithm/code/train/bcg
+bp_benchmark/bp_algorithm/code/train/checkpoints
+bp_benchmark/bp_algorithm/code/train/ppgbp
