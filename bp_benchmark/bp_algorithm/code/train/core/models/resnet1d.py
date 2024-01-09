@@ -21,6 +21,8 @@ class Resnet1d(Regressor):
                                 param_model.first_kernel_size, param_model.kernel_size, 
                                 param_model.stride, param_model.groups, param_model.n_block,
                                 param_model.output_size, param_model.is_se, param_model.se_ch_low)
+        self.annealing = True
+
     def _shared_step(self, batch, mode):
         x_ppg, y, x_abp, peakmask, vlymask, group = batch
         ppg = x_ppg['ppg']
@@ -34,7 +36,7 @@ class Resnet1d(Regressor):
     def training_step(self, batch, batch_idx):
         mode = "train"
         losses, pred_bp, t_abp, label, group = self._shared_step(batch, mode)
-        if self.config.method != "erm":
+        if self.config.method != "erm" and not self.annealing:
             per_group, group_count = per_group_loss(losses, group) #[2x5] [sbp/dbp, BP_group]
             mask = (group_count != 0) # To avoid 0 bp_group
             per_group_avg = per_group.sum(1)/(mask.sum())
@@ -55,6 +57,7 @@ class Resnet1d(Regressor):
                 loss /= (self.config.sbp_beta + self.config.dbp_beta)
         else:
             loss = losses.mean()
+            
         self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True)
         return {"loss":loss, "pred_bp":pred_bp, "true_abp":t_abp, "true_bp":label, "group": group, "losses": losses}
     

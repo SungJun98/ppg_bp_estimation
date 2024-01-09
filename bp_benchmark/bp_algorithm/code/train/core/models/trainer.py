@@ -1,14 +1,18 @@
 
+from typing import Any, List, Optional, Union
+from pytorch_lightning.core.datamodule import LightningDataModule
+from pytorch_lightning.core.lightning import LightningModule
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.utilities import DeviceType, parsing, rank_zero_warn
+from torch.utils.data import DataLoader
 
 
 #%%
 class MyTrainer(pl.Trainer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
+    
     def run_evaluation(self, on_epoch: bool = False):
         if not (self.evaluating or self.sanity_checking):
             rank_zero_warn(

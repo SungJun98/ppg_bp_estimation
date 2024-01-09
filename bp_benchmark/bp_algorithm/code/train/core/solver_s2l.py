@@ -35,6 +35,33 @@ coloredlogs.install()
 logger = logging.getLogger(__name__)  
 
 #%%
+
+class DelayedEarlyStopping(EarlyStopping):
+    """
+    For checking the annealing, we implement the custom earlystopping callback. 
+    Original Paper check the validation step every 2 epochs.
+    Perserving this, we also check the validation step every 2 epochs, but call _run_early_stoppinp_check every epoch to check annealing epochs.
+    Therefore, the argument, param_traner.check_val_every_n_epoch is setted 1 manumally.
+    """
+
+    def __init__(self, start_epoch, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.start_epoch = start_epoch
+        self.check_for_val = 0
+
+    def _run_early_stopping_check(self, trainer):
+        # Only run the check after a certain number of epochs       
+        if trainer.current_epoch == self.start_epoch-1:
+            trainer.model.annealing = False
+            print("######## End Annealing Step ########")
+
+        if trainer.current_epoch >= self.start_epoch-1:
+            if trainer.model.config.run_val_every == self.check_for_val:
+                super()._run_early_stopping_check(trainer)
+                self.check_for_val = 0
+            self.check_for_val += 1
+
+
 class SolverS2l(Solver):
     def _get_model(self, ckpt_path_abs=None):
         model = None
@@ -170,8 +197,14 @@ class SolverS2l(Solver):
 
             #--- Init model
             model = self._get_model()
-            early_stop_callback = EarlyStopping(**dict(self.config.param_early_stop))
+
+            #--- for annealing
+            if not self.config.annealing:
+                model.annealing = False
+
+            early_stop_callback = DelayedEarlyStopping(**dict(self.config.param_early_stop), start_epoch=self.config.annealing) 
             checkpoint_callback = ModelCheckpoint(**dict(self.config.logger.param_ckpt))
+            
             lr_logger = LearningRateMonitor()
             trainer = MyTrainer(**dict(self.config.param_trainer), callbacks=[early_stop_callback, checkpoint_callback],
             logger=self.config.pl_log)
