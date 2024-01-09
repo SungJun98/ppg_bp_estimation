@@ -22,7 +22,7 @@ objective:
 #  save_path: /sensorsbp/prediction/ppgbp_dataset/spectroresnet_ppgbp_nobw.pkl
 param_trainer:
   max_epochs: 100
-  check_val_every_n_epoch: 2
+  check_val_every_n_epoch: 1
   progress_bar_refresh_rate: 5
   gpus: '0'
   auto_lr_find: true

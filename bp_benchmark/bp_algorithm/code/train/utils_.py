@@ -31,6 +31,8 @@ def get_parser():
     parser.add_argument("--method", type=str, default="erm", choices=["erm", "vrex", "crex", "drex", "cdrex", "cdrex_time"])
     parser.add_argument("--no_result_save", action="store_true")
     parser.add_argument("--group_avg", action="store_true", help="Model Selection by Val_Group_Avg_MSE")
+    parser.add_argument("--annealing", type=int, default=0, help="epochs for pre-training with original loss")
+    parser.add_argument("--run_val_every", type=int, default=2, help="Orignal paper Use validation check every 2 epochs")
 
     ## Variance Penalty
     parser.add_argument("--sbp_beta", type=float, default=0, help="variance penalty for sbp")
@@ -66,6 +68,11 @@ def merge_config_parser(config,args):
         merged_config.objective.type = "val_group_mse"
     if args.batch_size:
         merged_config.param_model.batch_size = args.batch_size
+
+    if args.method == "erm" and args.annealing:
+        print("############# ERM method doesn't allow annealing. #############")
+        merged_config.annealing = 0
+
 
     # Manual Setting for Sweep
     if merged_config.exp.model_type == "convtr":

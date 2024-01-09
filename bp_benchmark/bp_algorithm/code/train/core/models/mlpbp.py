@@ -24,13 +24,14 @@ class MLPBP(Regressor):
                                param_model.token_dim, 
                                param_model.channel_dim, 
                                param_model.dropout)
+        self.annealing = True
         
     def _shared_step(self, batch, mode):
         x_ppg, y, x_abp, peakmask, vlymask, group = batch
         ppg = x_ppg['ppg']
         if self.config.method == "cdrex_time" and mode == "train":
             ppg, y, group = group_time_cutmix_all(ppg, y, group)
-        # import pdb; pdb.set_trace()
+        
         pred = self.model(ppg)
         losses = self.criterion(pred, y)
         group = group.unsqueeze(1)
@@ -39,7 +40,7 @@ class MLPBP(Regressor):
     def training_step(self, batch, batch_idx):
         mode = "train"
         losses, pred_bp, t_abp, label, group = self._shared_step(batch, mode)
-        if self.config.method != "erm":
+        if self.config.method != "erm" and not self.annealing:
             per_group, group_count = per_group_loss(losses, group) #[2x5] [sbp/dbp, BP_group]
             mask = (group_count != 0) # To avoid 0 bp_group
             per_group_avg = per_group.sum(1)/(mask.sum())

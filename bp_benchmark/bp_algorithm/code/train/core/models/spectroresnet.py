@@ -38,6 +38,7 @@ class SpectroResnet(Regressor):
                                              gru_hidden=param_model.gru_hidden,
                                              UseDerivative=param_model.UseDerivative,
                                              verbose=param_model.model_verbose)
+        self.annealing = True
                                              
     def _shared_step(self, batch, mode):
         x_ppg, y, x_abp, peakmask, vlymask, group = batch
@@ -53,7 +54,7 @@ class SpectroResnet(Regressor):
     def training_step(self, batch, batch_idx):
         mode = "train"
         losses, pred_bp, t_abp, label, group = self._shared_step(batch, mode)
-        if self.config.method != "erm":
+        if self.config.method != "erm" and not self.annealing:
             per_group, group_count = per_group_loss(losses, group) #[2x5] [sbp/dbp, BP_group]
             mask = (group_count != 0) # To avoid 0 bp_group
             per_group_avg = per_group.sum(1)/(mask.sum())
